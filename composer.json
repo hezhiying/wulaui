@@ -1,0 +1,9 @@
+{
+  "name": "wula/ui",
+  "description": "a ui framework based on bootstrap, jquery",
+  "type": "wula-asset",
+  "license": "MIT",
+  "require": {
+	"wula/wula-installer": "*"
+  }
+}
