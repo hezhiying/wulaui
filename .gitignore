@@ -57,3 +57,6 @@ typings/
 # dotenv environment variables file
 .env
 
+css/app.css
+css/plugins.css
+package-lock.json
