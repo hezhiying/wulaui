@@ -18,13 +18,6 @@
 		} else {
 			opts.isElement = true;
 		}
-		let e  = $.Event('ajax.confirm');
-		e.opts = opts;
-		opts.element.trigger(e);
-		if (e.isDefaultPrevented()) {
-			e.preventDefault();
-			return false;
-		}
 		if (opts.isElement) {
 			opts.element.data('ajaxSending', true);
 		}
@@ -113,7 +106,30 @@
 			be.opts.dataType = types.length === 2 ? types[1] : 'json';
 			$this.trigger(be);
 			if (!be.isDefaultPrevented()) {
-				$.ajax(be.opts);
+				if ($this.data('confirm') !== undefined) {
+					$.confirm({
+						content: $this.data('confirm')||'',
+						title  : $this.data('confirmTitle') || $.lang.core.confirmTile,
+						icon   : $this.data('confirmIcon')||'fa fa-question-circle',
+						type   : $this.data('confirmType')||'orange',
+						theme  : 'material',
+						buttons: {
+							ok    : {
+								text    : $.lang.core.ok,
+								btnClass: 'btn-blue',
+								keys    : ['enter', 'a'],
+								action(){
+									$.ajax(be.opts);
+								}
+							},
+							cancel: {
+								text: $.lang.core.cancel
+							}
+						}
+					});
+				} else {
+					$.ajax(be.opts);
+				}
 			}
 		}
 		return false;

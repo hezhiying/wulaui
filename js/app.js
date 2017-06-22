@@ -37,7 +37,10 @@ Date.now = Date.now || function () {
 			error: 'Oops!! ',
 			warning: 'Warning ',
 			success: 'Done ',
-			info: 'Tip '
+			info: 'Tip ',
+			ok: 'OK',
+			cancel: 'Cancel',
+			confirmTile: 'Are you sure?'
 		}
 	};
 	$.wulaUI = {};
@@ -180,13 +183,6 @@ Date.now = Date.now || function () {
 		} else {
 			opts.isElement = true;
 		}
-		var e = $.Event('ajax.confirm');
-		e.opts = opts;
-		opts.element.trigger(e);
-		if (e.isDefaultPrevented()) {
-			e.preventDefault();
-			return false;
-		}
 		if (opts.isElement) {
 			opts.element.data('ajaxSending', true);
 		}
@@ -275,7 +271,30 @@ Date.now = Date.now || function () {
 			be.opts.dataType = types.length === 2 ? types[1] : 'json';
 			$this.trigger(be);
 			if (!be.isDefaultPrevented()) {
-				$.ajax(be.opts);
+				if ($this.data('confirm') !== undefined) {
+					$.confirm({
+						content: $this.data('confirm') || '',
+						title: $this.data('confirmTitle') || $.lang.core.confirmTile,
+						icon: $this.data('confirmIcon') || 'fa fa-question-circle',
+						type: $this.data('confirmType') || 'orange',
+						theme: 'material',
+						buttons: {
+							ok: {
+								text: $.lang.core.ok,
+								btnClass: 'btn-blue',
+								keys: ['enter', 'a'],
+								action: function action() {
+									$.ajax(be.opts);
+								}
+							},
+							cancel: {
+								text: $.lang.core.cancel
+							}
+						}
+					});
+				} else {
+					$.ajax(be.opts);
+				}
 			}
 		}
 		return false;

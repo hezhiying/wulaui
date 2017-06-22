@@ -33,10 +33,13 @@ Date.now = Date.now || function () {
 	};
 	$.lang        = {
 		core: {
-			error  : 'Oops!! ',
-			warning: 'Warning ',
-			success: 'Done ',
-			info   : 'Tip '
+			error      : 'Oops!! ',
+			warning    : 'Warning ',
+			success    : 'Done ',
+			info       : 'Tip ',
+			ok         : 'OK',
+			cancel     : 'Cancel',
+			confirmTile: 'Are you sure?'
 		}
 	};
 	$.wulaUI      = {};

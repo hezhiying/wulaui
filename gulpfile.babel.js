@@ -3,7 +3,7 @@ import concat from "gulp-concat";
 import clean from "gulp-rimraf";
 import rename from "gulp-rename";
 import less from "gulp-less";
-import cssmin from "gulp-minify-css";
+import cssmin from "gulp-clean-css";
 
 import uglify from "gulp-uglify";
 import jsvalidate from "gulp-jsvalidate";

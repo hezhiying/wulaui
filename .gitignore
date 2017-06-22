@@ -60,3 +60,4 @@ typings/
 css/app.css
 css/plugins.css
 package-lock.json
+.idea/
