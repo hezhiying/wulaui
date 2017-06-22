@@ -10,6 +10,7 @@ import jsvalidate from "gulp-jsvalidate";
 import notify from "gulp-notify";
 import babel from "gulp-babel";
 import minimist from "minimist";
+import webserver from "gulp-webserver";
 
 let knownOptions = {
 	string : 'env',
@@ -94,7 +95,12 @@ gulp.task('js', [], function () {
 			.pipe(gulp.dest('js'));
 });
 
-gulp.task('watch', [], function () {
+gulp.task('watch', ['build'], function () {
 	options.env = 'development';
+	gulp.src('.').pipe(webserver({
+		open    : 'demo/',
+
+		fallback: '404.html'
+	}));
 	return gulp.watch(['less/**', 'src/**'], ['ccss', 'js']);
 });

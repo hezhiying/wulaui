@@ -1,4 +1,5 @@
 less/ export-ignore
 src/ export-ignore
+demo/ export-ignore
 package.json export-ignore
 gulpfile.babel.js export-ignore
