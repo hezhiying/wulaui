@@ -6,10 +6,8 @@
 	$.ajax = function (url, options) {
 		return wulajax(url, options).done(data => {
 			//成功啦
-			console.log(data)
-		}).fail((e, e1, e2, e3) => {
-			//失败啦
-			console.log(e2)
+			showMsg(data);
+			ajaxAction(data);
 		});
 	};
 
@@ -31,13 +29,16 @@
 			opts.element.data('ajaxSending', true);
 		}
 		opts.element.trigger('ajax.send');
+		if (opts.element.hasClass('data-loading-text')) {
+			opts.element.button('loading');
+		}
 		xhr.setRequestHeader('X-AJAX-TYPE', opts.dataType);
 	});
 
 	$(document).ajaxError((event, xhr, opts, error) => {
 		$.wulaUI.loadingBar.error();
 		let e = $.Event('ajax.error');
-		opts.element.trigger(e, [xhr, error, opts]);
+		opts.element.trigger(e, [opts, error, xhr]);
 		if (!e.isDefaultPrevented()) {
 			//处理错误
 			switch (xhr.status) {
@@ -52,23 +53,35 @@
 					});
 					break;
 				case 401:
-					break;
 				case 403:
-					break;
 				case 404:
-					break;
+				default:
+					$.notify({
+						title  : $.lang.core.error,
+						message: '<br/>' + xhr.statusText
+					}, {
+						type     : 'danger',
+						z_index  : 9000,
+						placement: {
+							from : "top",
+							align: "right"
+						}
+					});
 			}
 		}
 	});
 
 	$(document).ajaxSuccess((event, xhr, opts, data) => {
 		$.wulaUI.loadingBar.success();
-		opts.element.trigger('ajax.success', [xhr, data, opts]);
+		opts.element.trigger('ajax.success', [data, opts, xhr]);
 	});
 
 	$(document).ajaxComplete((event, xhr, opts) => {
 		opts.element.data('ajaxSending', false);
-		opts.element.trigger('ajax.done', [xhr, opts]);
+		if (opts.element.hasClass('data-loading-text')) {
+			opts.element.button('reset');
+		}
+		opts.element.trigger('ajax.done', [opts, xhr]);
 	});
 	// 全局设置
 	$.ajaxSetup({
@@ -96,7 +109,7 @@
 			let ajax    = be.opts.ajax || 'get.json';
 			delete be.opts.ajax;
 			let types        = ajax.split('.');
-			be.opts.method   = types[0];
+			be.opts.method   = types[0].toUpperCase();
 			be.opts.dataType = types.length === 2 ? types[1] : 'json';
 			$this.trigger(be);
 			if (!be.isDefaultPrevented()) {
@@ -107,12 +120,104 @@
 	};
 	const deal500       = function (data) {
 		$.dialog({
+			icon        : 'fa fa-warning',
 			theme       : 'supervan',
 			title       : '',
+			type        : 'red',
 			content     : data.message,
 			boxWidth    : '80%',
 			useBootstrap: false
 		});
+	};
+	const showMsg       = function (data) {
+		if (data.message) {
+			let notice = true, opts = {};
+			if (data.style === 'alert') {
+				notice = false;
+			}
+			switch (data.code) {
+				case 500://ERROR
+					opts.icon  = 'fa fa-warning';
+					opts.title = $.lang.core.error;
+					if (notice) {
+						opts.type = 'danger';
+					} else {
+						opts.type    = 'red';
+						opts.content = data.message;
+					}
+					break;
+				case 400://WARNING
+					opts.icon  = 'fa fa-warning';
+					opts.title = $.lang.core.warning;
+					if (notice) {
+						opts.type = 'warning';
+					} else {
+						opts.type    = 'orange';
+						opts.content = data.message;
+					}
+					break;
+				case 300://INFO
+					opts.icon  = 'fa fa-info-circle';
+					opts.title = $.lang.core.info;
+					if (notice) {
+						opts.type = 'info';
+					} else {
+						opts.type    = 'blue';
+						opts.content = data.message;
+					}
+					break;
+				case 200://SUCCESS
+				default:
+					opts.icon  = 'fa fa-check-square';
+					opts.title = $.lang.core.success;
+					if (notice) {
+						opts.type = 'success';
+					} else {
+						opts.type    = 'green';
+						opts.content = data.message;
+					}
+					break;
+			}
+			if (notice) {
+				opts.z_index   = 9000;
+				opts.placement = {
+					from : "top",
+					align: "right"
+				};
+				$.notify({
+					icon   : opts.icon,
+					title  : '<strong>' + opts.title + '</strong>',
+					message: data.message
+				}, opts);
+			} else {
+				$.dialog(opts);
+			}
+		}
+	};
+	const ajaxAction    = (data) => {
+		switch (data.action) {
+			case 'update':
+				break;
+			case 'reload':
+				break;
+			case 'click':
+				break;
+			case 'redirect':
+				let url = data.target;
+				if (url) {
+					if (url[0] === '#') {
+						window.location.hash = url;
+					} else {
+						window.location.href = url;
+					}
+				}
+				break;
+			case 'validate':
+				break;
+			case 'script':
+				break;
+			default:
+		}
 	};
 	//页面加载完成时处理
 	$(() => {

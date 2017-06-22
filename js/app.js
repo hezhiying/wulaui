@@ -1,20 +1,164 @@
-if ("undefined" == typeof jQuery) {
+if ("undefined" === typeof jQuery) {
 	throw new Error("WulaUI's JavaScript requires jQuery");
 }
+Date.now = Date.now || function () {
+	return +new Date();
+};
 // wulaUI
 (function ($) {
 	"use strict";
 
+	$.i18n = function (source, params) {
+		if (arguments.length === 1) {
+			return function () {
+				var args = $.makeArray(arguments);
+				args.unshift(source);
+				return $.i18n.apply(this, args);
+			};
+		}
+		if (params === undefined) {
+			return source;
+		}
+		if (arguments.length > 2 && params.constructor !== Array) {
+			params = $.makeArray(arguments).slice(1);
+		}
+		if (params.constructor !== Array) {
+			params = [params];
+		}
+		$.each(params, function (i, n) {
+			source = source.replace(new RegExp("\\{" + i + "\\}", "g"), function () {
+				return n;
+			});
+		});
+		return source;
+	};
+	$.lang = {
+		core: {
+			error: 'Oops!! ',
+			warning: 'Warning ',
+			success: 'Done ',
+			info: 'Tip '
+		}
+	};
 	$.wulaUI = {};
 	$.wulaUI.init = function (opts) {
 		$('body .wulaui').trigger('wulaui.widgets.init');
+		return $.wulaUI;
 	};
-	//处理窗口大小改变
-	$(window).resize(function () {
-		$(this).trigger('wulaui.layout');
-		return false;
+	// class
+	$(document).on('click', '[data-toggle^="class"]', function (e) {
+		e && e.preventDefault();
+		var $this = $(e.target),
+		    $class = void 0,
+		    $target = void 0,
+		    $tmp = void 0,
+		    $classes = void 0,
+		    $targets = void 0;
+		!$this.data('toggle') && ($this = $this.closest('[data-toggle^="class"]'));
+		$class = $this.data()['toggle'];
+		$target = $this.data('target') || $this.attr('href');
+		$class && ($tmp = $class.split(':')[1]) && ($classes = $tmp.split(','));
+		$target && ($targets = $target.split(','));
+		$targets && $targets.length && $.each($targets, function (index) {
+			$targets[index] !== '#' && $($targets[index]).toggleClass($classes[index]);
+		});
+		$this.toggleClass('active');
+	});
+	var $window = $(window);
+	// mobile
+	var mobile = function mobile(option) {
+		if (option === 'reset') {
+			$('[data-toggle^="shift"]').shift('reset');
+		} else {
+			$('[data-toggle^="shift"]').shift('init');
+		}
+		return true;
+	};
+	// unmobile
+	$window.width() < 768 && mobile();
+	var $resize = void 0,
+	    $width = $window.width();
+	$window.resize(function () {
+		if ($width !== $window.width()) {
+			clearTimeout($resize);
+			$resize = setTimeout(function () {
+				setHeight();
+				$window.width() < 768 && mobile();
+				$window.width() >= 768 && mobile('reset') && fixVbox();
+				$width = $window.width();
+			}, 500);
+		}
+		$window.trigger('wulaui.layout');
 	}).resize();
-})(jQuery);
+
+	$(document).on('click', "[data-toggle=fullscreen]", function () {
+		if (screenfull.enabled) {
+			screenfull.request();
+		}
+	});
+
+	// fluid layout
+	var setHeight = function setHeight() {
+		$('.app-fluid #nav > *').css('min-height', $(window).height());
+		return true;
+	};
+	setHeight();
+
+	// fix vbox
+	var fixVbox = function fixVbox() {
+		$('.ie11 .vbox').each(function () {
+			$(this).height($(this).parent().height());
+		});
+	};
+	fixVbox();
+
+	// collapse nav
+	$(document).on('click', '.nav-primary a', function (e) {
+		var $this = $(e.target),
+		    $active = void 0;
+		$this.is('a') || ($this = $this.closest('a'));
+		if ($('.nav-vertical').length) {
+			return;
+		}
+
+		$active = $this.parent().siblings(".active");
+		$active && $active.find('> a').toggleClass('active') && $active.toggleClass('active').find('> ul:visible').slideUp(200);
+
+		$this.hasClass('active') && $this.next().slideUp(200) || $this.next().slideDown(200);
+		$this.toggleClass('active').parent().toggleClass('active');
+
+		$this.next().is('ul') && e.preventDefault();
+
+		setTimeout(function () {
+			$(document).trigger('updateNav');
+		}, 300);
+	});
+	// dropdown still
+	$(document).on('click.bs.dropdown.data-api', '.dropdown .on, .dropup .on', function (e) {
+		e.stopPropagation();
+	});
+	// slim-scroll
+	var initSlim = function initSlim() {
+		var $self = $(this),
+		    $data = $self.data(),
+		    $slimResize = void 0;
+		$self.slimScroll($data);
+		$(window).resize(function () {
+			clearTimeout($slimResize);
+			$slimResize = setTimeout(function () {
+				$self.slimScroll($data);
+			}, 500);
+		});
+
+		$(document).on('updateNav', function () {
+			$self.slimScroll($data);
+		});
+	};
+	$('.no-touch .slim-scroll').each(initSlim);
+	$('body').on('wulaui.widgets.init', '.wulaui', function () {
+		$(this).find('.no-touch .slim-scroll').each(initSlim);
+	});
+})(window.jQuery);
 // ajax.js
 (function ($) {
 	"use strict";
@@ -24,10 +168,8 @@ if ("undefined" == typeof jQuery) {
 	$.ajax = function (url, options) {
 		return wulajax(url, options).done(function (data) {
 			//成功啦
-			console.log(data);
-		}).fail(function (e, e1, e2, e3) {
-			//失败啦
-			console.log(e2);
+			showMsg(data);
+			ajaxAction(data);
 		});
 	};
 
@@ -49,13 +191,16 @@ if ("undefined" == typeof jQuery) {
 			opts.element.data('ajaxSending', true);
 		}
 		opts.element.trigger('ajax.send');
+		if (opts.element.hasClass('data-loading-text')) {
+			opts.element.button('loading');
+		}
 		xhr.setRequestHeader('X-AJAX-TYPE', opts.dataType);
 	});
 
 	$(document).ajaxError(function (event, xhr, opts, error) {
 		$.wulaUI.loadingBar.error();
 		var e = $.Event('ajax.error');
-		opts.element.trigger(e, [xhr, error, opts]);
+		opts.element.trigger(e, [opts, error, xhr]);
 		if (!e.isDefaultPrevented()) {
 			//处理错误
 			switch (xhr.status) {
@@ -70,23 +215,35 @@ if ("undefined" == typeof jQuery) {
 					});
 					break;
 				case 401:
-					break;
 				case 403:
-					break;
 				case 404:
-					break;
+				default:
+					$.notify({
+						title: $.lang.core.error,
+						message: '<br/>' + xhr.statusText
+					}, {
+						type: 'danger',
+						z_index: 9000,
+						placement: {
+							from: "top",
+							align: "right"
+						}
+					});
 			}
 		}
 	});
 
 	$(document).ajaxSuccess(function (event, xhr, opts, data) {
 		$.wulaUI.loadingBar.success();
-		opts.element.trigger('ajax.success', [xhr, data, opts]);
+		opts.element.trigger('ajax.success', [data, opts, xhr]);
 	});
 
 	$(document).ajaxComplete(function (event, xhr, opts) {
 		opts.element.data('ajaxSending', false);
-		opts.element.trigger('ajax.done', [xhr, opts]);
+		if (opts.element.hasClass('data-loading-text')) {
+			opts.element.button('reset');
+		}
+		opts.element.trigger('ajax.done', [opts, xhr]);
 	});
 	// 全局设置
 	$.ajaxSetup({
@@ -114,7 +271,7 @@ if ("undefined" == typeof jQuery) {
 			var ajax = be.opts.ajax || 'get.json';
 			delete be.opts.ajax;
 			var types = ajax.split('.');
-			be.opts.method = types[0];
+			be.opts.method = types[0].toUpperCase();
 			be.opts.dataType = types.length === 2 ? types[1] : 'json';
 			$this.trigger(be);
 			if (!be.isDefaultPrevented()) {
@@ -125,12 +282,108 @@ if ("undefined" == typeof jQuery) {
 	};
 	var deal500 = function deal500(data) {
 		$.dialog({
+			icon: 'fa fa-warning',
 			theme: 'supervan',
 			title: '',
+			type: 'red',
 			content: data.message,
 			boxWidth: '80%',
 			useBootstrap: false
 		});
+	};
+	var showMsg = function showMsg(data) {
+		if (data.message) {
+			var notice = true,
+			    opts = {};
+			if (data.style === 'alert') {
+				notice = false;
+			}
+			switch (data.code) {
+				case 500:
+					//ERROR
+					opts.icon = 'fa fa-warning';
+					opts.title = $.lang.core.error;
+					if (notice) {
+						opts.type = 'danger';
+					} else {
+						opts.type = 'red';
+						opts.content = data.message;
+					}
+					break;
+				case 400:
+					//WARNING
+					opts.icon = 'fa fa-warning';
+					opts.title = $.lang.core.warning;
+					if (notice) {
+						opts.type = 'warning';
+					} else {
+						opts.type = 'orange';
+						opts.content = data.message;
+					}
+					break;
+				case 300:
+					//INFO
+					opts.icon = 'fa fa-info-circle';
+					opts.title = $.lang.core.info;
+					if (notice) {
+						opts.type = 'info';
+					} else {
+						opts.type = 'blue';
+						opts.content = data.message;
+					}
+					break;
+				case 200: //SUCCESS
+				default:
+					opts.icon = 'fa fa-check-square';
+					opts.title = $.lang.core.success;
+					if (notice) {
+						opts.type = 'success';
+					} else {
+						opts.type = 'green';
+						opts.content = data.message;
+					}
+					break;
+			}
+			if (notice) {
+				opts.z_index = 9000;
+				opts.placement = {
+					from: "top",
+					align: "right"
+				};
+				$.notify({
+					icon: opts.icon,
+					title: '<strong>' + opts.title + '</strong>',
+					message: data.message
+				}, opts);
+			} else {
+				$.dialog(opts);
+			}
+		}
+	};
+	var ajaxAction = function ajaxAction(data) {
+		switch (data.action) {
+			case 'update':
+				break;
+			case 'reload':
+				break;
+			case 'click':
+				break;
+			case 'redirect':
+				var url = data.target;
+				if (url) {
+					if (url[0] === '#') {
+						window.location.hash = url;
+					} else {
+						window.location.href = url;
+					}
+				}
+				break;
+			case 'validate':
+				break;
+			case 'script':
+				break;
+			default:
+		}
 	};
 	//页面加载完成时处理
 	$(function () {
@@ -208,4 +461,36 @@ if ("undefined" == typeof jQuery) {
 			bar.hide();
 		});
 	});
+})(jQuery);
+(function ($) {
+	"use strict";
+
+	var Shift = function Shift(element) {
+		this.$element = $(element);
+		this.$prev = this.$element.prev();
+		!this.$prev.length && (this.$parent = this.$element.parent());
+	};
+	Shift.prototype = {
+		constructor: Shift,
+		init: function init() {
+			var $el = this.$element,
+			    method = $el.data()['toggle'].split(':')[1],
+			    $target = $el.data('target');
+			$el.hasClass('in') || $el[method]($target).addClass('in');
+		},
+		reset: function reset() {
+			this.$parent && this.$parent['prepend'](this.$element);
+			!this.$parent && this.$element['insertAfter'](this.$prev);
+			this.$element.removeClass('in');
+		}
+	};
+	$.fn.shift = function (option) {
+		return this.each(function () {
+			var $this = $(this),
+			    data = $this.data('shift');
+			if (!data) $this.data('shift', data = new Shift(this));
+			if (typeof option === 'string') data[option]();
+		});
+	};
+	$.fn.shift.Constructor = Shift;
 })(jQuery);
