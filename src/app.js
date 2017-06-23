@@ -1,47 +1,9 @@
-if ("undefined" === typeof jQuery) {
-	throw new Error("WulaUI's JavaScript requires jQuery");
-}
 Date.now = Date.now || function () {
 		return +new Date;
 	};
 // wulaUI
 (function ($) {
 	"use strict";
-	$.i18n        = function (source, params) {
-		if (arguments.length === 1) {
-			return function () {
-				let args = $.makeArray(arguments);
-				args.unshift(source);
-				return $.i18n.apply(this, args);
-			};
-		}
-		if (params === undefined) {
-			return source;
-		}
-		if (arguments.length > 2 && params.constructor !== Array) {
-			params = $.makeArray(arguments).slice(1);
-		}
-		if (params.constructor !== Array) {
-			params = [params];
-		}
-		$.each(params, function (i, n) {
-			source = source.replace(new RegExp("\\{" + i + "\\}", "g"), function () {
-				return n;
-			});
-		});
-		return source;
-	};
-	$.lang        = {
-		core: {
-			error      : 'Oops!! ',
-			warning    : 'Warning ',
-			success    : 'Done ',
-			info       : 'Tip ',
-			ok         : 'OK',
-			cancel     : 'Cancel',
-			confirmTile: 'Are you sure?'
-		}
-	};
 	$.wulaUI      = {};
 	$.wulaUI.init = (opts) => {
 		$('body .wulaui').trigger('wulaui.widgets.init');

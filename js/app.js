@@ -1,19 +1,16 @@
 if ("undefined" === typeof jQuery) {
 	throw new Error("WulaUI's JavaScript requires jQuery");
 }
-Date.now = Date.now || function () {
-	return +new Date();
-};
-// wulaUI
 (function ($) {
-	"use strict";
-
 	$.i18n = function (source, params) {
+		var _arguments = arguments,
+		    _this = this;
+
 		if (arguments.length === 1) {
 			return function () {
-				var args = $.makeArray(arguments);
+				var args = $.makeArray(_arguments);
 				args.unshift(source);
-				return $.i18n.apply(this, args);
+				return $.i18n.apply(_this, args);
 			};
 		}
 		if (params === undefined) {
@@ -32,17 +29,63 @@ Date.now = Date.now || function () {
 		});
 		return source;
 	};
+})(jQuery);
+(function ($) {
 	$.lang = {
 		core: {
 			error: 'Oops!! ',
 			warning: 'Warning ',
 			success: 'Done ',
 			info: 'Tip ',
+			tip: 'Tip',
 			ok: 'OK',
+			yes: 'Yes',
+			yes1: 'Yes,Sure!',
+			no: 'No',
 			cancel: 'Cancel',
 			confirmTile: 'Are you sure?'
 		}
 	};
+})(jQuery);
+(function ($) {
+	"use strict";
+
+	var Shift = function Shift(element) {
+		this.$element = $(element);
+		this.$prev = this.$element.prev();
+		!this.$prev.length && (this.$parent = this.$element.parent());
+	};
+	Shift.prototype = {
+		constructor: Shift,
+		init: function init() {
+			var $el = this.$element,
+			    method = $el.data()['toggle'].split(':')[1],
+			    $target = $el.data('target');
+			$el.hasClass('in') || $el[method]($target).addClass('in');
+		},
+		reset: function reset() {
+			this.$parent && this.$parent['prepend'](this.$element);
+			!this.$parent && this.$element['insertAfter'](this.$prev);
+			this.$element.removeClass('in');
+		}
+	};
+	$.fn.shift = function (option) {
+		return this.each(function () {
+			var $this = $(this),
+			    data = $this.data('shift');
+			if (!data) $this.data('shift', data = new Shift(this));
+			if (typeof option === 'string') data[option]();
+		});
+	};
+	$.fn.shift.Constructor = Shift;
+})(jQuery);
+Date.now = Date.now || function () {
+	return +new Date();
+};
+// wulaUI
+(function ($) {
+	"use strict";
+
 	$.wulaUI = {};
 	$.wulaUI.init = function (opts) {
 		$('body .wulaui').trigger('wulaui.widgets.init');
@@ -186,7 +229,9 @@ Date.now = Date.now || function () {
 		if (opts.isElement) {
 			opts.element.data('ajaxSending', true);
 		}
-		opts.element.trigger('ajax.send');
+		var e = new $.Event('ajax.send');
+		e.element = opts.element;
+		opts.element.trigger(e, [opts, xhr]);
 		if (opts.element.hasClass('data-loading-text')) {
 			opts.element.button('loading');
 		}
@@ -239,7 +284,9 @@ Date.now = Date.now || function () {
 		if (opts.element.hasClass('data-loading-text')) {
 			opts.element.button('reset');
 		}
-		opts.element.trigger('ajax.done', [opts, xhr]);
+		var e = new $.Event(ajax.done);
+		e.element = opts.element;
+		opts.element.trigger(e, [opts, xhr]);
 	});
 	// 全局设置
 	$.ajaxSetup({
@@ -264,26 +311,43 @@ Date.now = Date.now || function () {
 			var be = $.Event('ajax.build');
 			be.opts = $.extend({ element: $this }, $this.data() || {});
 			be.opts.url = be.opts.url || $this.attr('href') || $this.attr('action') || '';
-			var ajax = be.opts.ajax || 'get.json';
+			var _ajax = be.opts.ajax || 'get.json';
 			delete be.opts.ajax;
-			var types = ajax.split('.');
+			var types = _ajax.split('.');
 			be.opts.method = types[0].toUpperCase();
 			be.opts.dataType = types.length === 2 ? types[1] : 'json';
 			$this.trigger(be);
 			if (!be.isDefaultPrevented()) {
 				if ($this.data('confirm') !== undefined) {
-					$.confirm({
+					var jc = $.confirm({
 						content: $this.data('confirm') || '',
 						title: $this.data('confirmTitle') || $.lang.core.confirmTile,
 						icon: $this.data('confirmIcon') || 'fa fa-question-circle',
 						type: $this.data('confirmType') || 'orange',
-						theme: 'material',
+						theme: $this.data('confirmTheme') || 'material',
 						buttons: {
 							ok: {
-								text: $.lang.core.ok,
+								text: $.lang.core.yes1,
 								btnClass: 'btn-blue',
 								keys: ['enter', 'a'],
 								action: function action() {
+									if ($this.data('loading') !== undefined) {
+										$this.data('loading', null);
+										jc.setTitle('');
+										jc.buttons.ok.hide();
+										jc.buttons.cancel.hide();
+										jc.setIcon('');
+										jc.setContent('<i class="fa fa-spinner fa-spin fa-4x" aria-hidden="true"></i>');
+
+										$.ajax(be.opts).always(function () {
+											if ($this.data('block') !== undefined) {
+												return;
+											}
+											jc.close();
+										});
+
+										return false;
+									}
 									$.ajax(be.opts);
 								}
 							},
@@ -479,37 +543,29 @@ Date.now = Date.now || function () {
 		$(document).ajaxStop(function () {
 			bar.hide();
 		});
-	});
-})(jQuery);
-(function ($) {
-	"use strict";
-
-	var Shift = function Shift(element) {
-		this.$element = $(element);
-		this.$prev = this.$element.prev();
-		!this.$prev.length && (this.$parent = this.$element.parent());
-	};
-	Shift.prototype = {
-		constructor: Shift,
-		init: function init() {
-			var $el = this.$element,
-			    method = $el.data()['toggle'].split(':')[1],
-			    $target = $el.data('target');
-			$el.hasClass('in') || $el[method]($target).addClass('in');
-		},
-		reset: function reset() {
-			this.$parent && this.$parent['prepend'](this.$element);
-			!this.$parent && this.$element['insertAfter'](this.$prev);
-			this.$element.removeClass('in');
-		}
-	};
-	$.fn.shift = function (option) {
-		return this.each(function () {
-			var $this = $(this),
-			    data = $this.data('shift');
-			if (!data) $this.data('shift', data = new Shift(this));
-			if (typeof option === 'string') data[option]();
+		// block it
+		$(document).on('ajax.send', '[data-loading]', function (e) {
+			var me = e.element;
+			if (me.data('loading') !== undefined && me.data('loading') !== null) {
+				var jc = $.dialog({
+					title: '',
+					type: 'theme',
+					theme: me.data('confirmTheme') || 'supervan',
+					content: '<i class="fa fa-spinner fa-spin fa-4x" aria-hidden="true"></i>',
+					closeIcon: false,
+					container: me.data('confirmTarget') || 'body'
+				});
+				me.data('loading', jc);
+			}
 		});
-	};
-	$.fn.shift.Constructor = Shift;
+		//关闭block
+		$(document).on('ajax.done', '[data-loading]', function (e) {
+			var me = e.element;
+			if (me.data('loading') !== undefined && me.data('loading') !== null) {
+				try {
+					me.data('loading').close();
+				} catch (e) {}
+			}
+		});
+	});
 })(jQuery);

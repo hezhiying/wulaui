@@ -77,9 +77,11 @@ gulp.task('css', [], function () {
 gulp.task('js', [], function () {
 	console.log("compile js.");
 	let js = gulp.src([
+		'src/i18n/*.js',
+		'src/components/shift.js',
 		'src/app.js',
 		'src/**/*.js'
-	])
+		])
 		.pipe(babel({
 			presets: ['env']
 		}))
@@ -87,6 +89,7 @@ gulp.task('js', [], function () {
 		.on('error', notify.onError(e => e.message))
 		.pipe(concat('app.js'))
 		.pipe(gulp.dest('js'));
+
 	if (options.env === 'production')
 		return js.pipe(uglify())
 			.pipe(rename({
@@ -98,7 +101,7 @@ gulp.task('js', [], function () {
 gulp.task('watch', ['build'], function () {
 	options.env = 'development';
 	gulp.src('.').pipe(webserver({
-		open    : 'demo/',
+		open: 'demo/',
 
 		fallback: '404.html'
 	}));

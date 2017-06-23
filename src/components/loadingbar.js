@@ -47,5 +47,30 @@
 		$(document).ajaxStop(() => {
 			bar.hide();
 		});
+		// block it
+		$(document).on('ajax.send', '[data-loading]', function (e) {
+			let me = e.element;
+			if (me.data('loading') !== undefined && me.data('loading') !== null) {
+				let jc = $.dialog({
+					title    : '',
+					type     : 'theme',
+					theme    : me.data('confirmTheme') || 'supervan',
+					content  : '<i class="fa fa-spinner fa-spin fa-4x" aria-hidden="true"></i>',
+					closeIcon: false,
+					container: me.data('confirmTarget') || 'body'
+				});
+				me.data('loading', jc);
+			}
+		});
+		//关闭block
+		$(document).on('ajax.done', '[data-loading]', function (e) {
+			let me = e.element;
+			if (me.data('loading') !== undefined && me.data('loading') !== null) {
+				try {
+					me.data('loading').close();
+				} catch (e) {
+				}
+			}
+		});
 	});
 })(jQuery);

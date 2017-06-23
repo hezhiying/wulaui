@@ -21,7 +21,9 @@
 		if (opts.isElement) {
 			opts.element.data('ajaxSending', true);
 		}
-		opts.element.trigger('ajax.send');
+		let e     = new $.Event('ajax.send');
+		e.element = opts.element;
+		opts.element.trigger(e, [opts, xhr]);
 		if (opts.element.hasClass('data-loading-text')) {
 			opts.element.button('loading');
 		}
@@ -74,7 +76,9 @@
 		if (opts.element.hasClass('data-loading-text')) {
 			opts.element.button('reset');
 		}
-		opts.element.trigger('ajax.done', [opts, xhr]);
+		let e     = new $.Event(ajax.done);
+		e.element = opts.element;
+		opts.element.trigger(e, [opts, xhr]);
 	});
 	// 全局设置
 	$.ajaxSetup({
@@ -107,18 +111,35 @@
 			$this.trigger(be);
 			if (!be.isDefaultPrevented()) {
 				if ($this.data('confirm') !== undefined) {
-					$.confirm({
-						content: $this.data('confirm')||'',
+					let jc = $.confirm({
+						content: $this.data('confirm') || '',
 						title  : $this.data('confirmTitle') || $.lang.core.confirmTile,
-						icon   : $this.data('confirmIcon')||'fa fa-question-circle',
-						type   : $this.data('confirmType')||'orange',
-						theme  : 'material',
+						icon   : $this.data('confirmIcon') || 'fa fa-question-circle',
+						type   : $this.data('confirmType') || 'orange',
+						theme  : $this.data('confirmTheme') || 'material',
 						buttons: {
 							ok    : {
-								text    : $.lang.core.ok,
+								text    : $.lang.core.yes1,
 								btnClass: 'btn-blue',
 								keys    : ['enter', 'a'],
 								action(){
+									if ($this.data('loading') !== undefined) {
+										$this.data('loading', null);
+										jc.setTitle('');
+										jc.buttons.ok.hide();
+										jc.buttons.cancel.hide();
+										jc.setIcon('');
+										jc.setContent('<i class="fa fa-spinner fa-spin fa-4x" aria-hidden="true"></i>');
+
+										$.ajax(be.opts).always(() => {
+											if ($this.data('block') !== undefined) {
+												return;
+											}
+											jc.close();
+										});
+
+										return false;
+									}
 									$.ajax(be.opts);
 								}
 							},
