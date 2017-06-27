@@ -1,6 +1,4 @@
-if ("undefined" === typeof jQuery) {
-	throw new Error("WulaUI's JavaScript requires jQuery");
-}
+
 ($ => {
 	$.i18n = function (source, params) {
 		if (arguments.length === 1) {

@@ -1,6 +1,21 @@
 if ("undefined" === typeof jQuery) {
 	throw new Error("WulaUI's JavaScript requires jQuery");
 }
+Date.now = Date.now || function () {
+	return +new Date();
+};
+
+(function ($) {
+	"use strict";
+
+	$.wulaUI = {
+		settings: {
+			home: '#',
+			hash: false
+		}
+	};
+})(jQuery);
+
 (function ($) {
 	$.i18n = function (source, params) {
 		var _arguments = arguments,
@@ -47,164 +62,6 @@ if ("undefined" === typeof jQuery) {
 		}
 	};
 })(jQuery);
-(function ($) {
-	"use strict";
-
-	var Shift = function Shift(element) {
-		this.$element = $(element);
-		this.$prev = this.$element.prev();
-		!this.$prev.length && (this.$parent = this.$element.parent());
-	};
-	Shift.prototype = {
-		constructor: Shift,
-		init: function init() {
-			var $el = this.$element,
-			    method = $el.data()['toggle'].split(':')[1],
-			    $target = $el.data('target');
-			$el.hasClass('in') || $el[method]($target).addClass('in');
-		},
-		reset: function reset() {
-			this.$parent && this.$parent['prepend'](this.$element);
-			!this.$parent && this.$element['insertAfter'](this.$prev);
-			this.$element.removeClass('in');
-		}
-	};
-	$.fn.shift = function (option) {
-		return this.each(function () {
-			var $this = $(this),
-			    data = $this.data('shift');
-			if (!data) $this.data('shift', data = new Shift(this));
-			if (typeof option === 'string') data[option]();
-		});
-	};
-	$.fn.shift.Constructor = Shift;
-})(jQuery);
-Date.now = Date.now || function () {
-	return +new Date();
-};
-// wulaUI
-(function ($) {
-	"use strict";
-
-	$.wulaUI = {};
-	$.wulaUI.init = function (opts) {
-		$('body .wulaui').trigger('wulaui.widgets.init');
-		return $.wulaUI;
-	};
-	// class
-	$(document).on('click', '[data-toggle^="class"]', function (e) {
-		e && e.preventDefault();
-		var $this = $(e.target),
-		    $class = void 0,
-		    $target = void 0,
-		    $tmp = void 0,
-		    $classes = void 0,
-		    $targets = void 0;
-		!$this.data('toggle') && ($this = $this.closest('[data-toggle^="class"]'));
-		$class = $this.data()['toggle'];
-		$target = $this.data('target') || $this.attr('href');
-		$class && ($tmp = $class.split(':')[1]) && ($classes = $tmp.split(','));
-		$target && ($targets = $target.split(','));
-		$targets && $targets.length && $.each($targets, function (index) {
-			$targets[index] !== '#' && $($targets[index]).toggleClass($classes[index]);
-		});
-		$this.toggleClass('active');
-	});
-	var $window = $(window);
-	// mobile
-	var mobile = function mobile(option) {
-		if (option === 'reset') {
-			$('[data-toggle^="shift"]').shift('reset');
-		} else {
-			$('[data-toggle^="shift"]').shift('init');
-		}
-		return true;
-	};
-	// unmobile
-	$window.width() < 768 && mobile();
-	var $resize = void 0,
-	    $width = $window.width();
-	$window.resize(function () {
-		if ($width !== $window.width()) {
-			clearTimeout($resize);
-			$resize = setTimeout(function () {
-				setHeight();
-				$window.width() < 768 && mobile();
-				$window.width() >= 768 && mobile('reset') && fixVbox();
-				$width = $window.width();
-			}, 500);
-		}
-		$window.trigger('wulaui.layout');
-	}).resize();
-
-	$(document).on('click', "[data-toggle=fullscreen]", function () {
-		if (screenfull.enabled) {
-			screenfull.request();
-		}
-	});
-
-	// fluid layout
-	var setHeight = function setHeight() {
-		$('.app-fluid #nav > *').css('min-height', $(window).height());
-		return true;
-	};
-	setHeight();
-
-	// fix vbox
-	var fixVbox = function fixVbox() {
-		$('.ie11 .vbox').each(function () {
-			$(this).height($(this).parent().height());
-		});
-	};
-	fixVbox();
-
-	// collapse nav
-	$(document).on('click', '.nav-primary a', function (e) {
-		var $this = $(e.target),
-		    $active = void 0;
-		$this.is('a') || ($this = $this.closest('a'));
-		if ($('.nav-vertical').length) {
-			return;
-		}
-
-		$active = $this.parent().siblings(".active");
-		$active && $active.find('> a').toggleClass('active') && $active.toggleClass('active').find('> ul:visible').slideUp(200);
-
-		$this.hasClass('active') && $this.next().slideUp(200) || $this.next().slideDown(200);
-		$this.toggleClass('active').parent().toggleClass('active');
-
-		$this.next().is('ul') && e.preventDefault();
-
-		setTimeout(function () {
-			$(document).trigger('updateNav');
-		}, 300);
-	});
-	// dropdown still
-	$(document).on('click.bs.dropdown.data-api', '.dropdown .on, .dropup .on', function (e) {
-		e.stopPropagation();
-	});
-	// slim-scroll
-	var initSlim = function initSlim() {
-		var $self = $(this),
-		    $data = $self.data(),
-		    $slimResize = void 0;
-		$self.slimScroll($data);
-		$(window).resize(function () {
-			clearTimeout($slimResize);
-			$slimResize = setTimeout(function () {
-				$self.slimScroll($data);
-			}, 500);
-		});
-
-		$(document).on('updateNav', function () {
-			$self.slimScroll($data);
-		});
-	};
-	$('.no-touch .slim-scroll').each(initSlim);
-	$('body').on('wulaui.widgets.init', '.wulaui', function () {
-		$(this).find('.no-touch .slim-scroll').each(initSlim);
-	});
-})(window.jQuery);
 // ajax.js
 (function ($) {
 	"use strict";
@@ -213,9 +70,10 @@ Date.now = Date.now || function () {
 	// 重写ajax
 	$.ajax = function (url, options) {
 		return wulajax(url, options).done(function (data) {
-			//成功啦
-			showMsg(data);
-			ajaxAction(data);
+			if (options && options.dataType === 'json' || url && url.dataType === 'json') {
+				showMsg(data);
+				ajaxAction(data);
+			}
 		});
 	};
 
@@ -284,7 +142,7 @@ Date.now = Date.now || function () {
 		if (opts.element.hasClass('data-loading-text')) {
 			opts.element.button('reset');
 		}
-		var e = new $.Event(ajax.done);
+		var e = new $.Event('ajax.done');
 		e.element = opts.element;
 		opts.element.trigger(e, [opts, xhr]);
 	});
@@ -311,9 +169,9 @@ Date.now = Date.now || function () {
 			var be = $.Event('ajax.build');
 			be.opts = $.extend({ element: $this }, $this.data() || {});
 			be.opts.url = be.opts.url || $this.attr('href') || $this.attr('action') || '';
-			var _ajax = be.opts.ajax || 'get.json';
+			var ajax = be.opts.ajax || 'get.json';
 			delete be.opts.ajax;
-			var types = _ajax.split('.');
+			var types = ajax.split('.');
 			be.opts.method = types[0].toUpperCase();
 			be.opts.dataType = types.length === 2 ? types[1] : 'json';
 			$this.trigger(be);
@@ -457,7 +315,11 @@ Date.now = Date.now || function () {
 					if (url[0] === '#') {
 						window.location.hash = url;
 					} else {
-						window.location.href = url;
+						if (window.location.hash && data.hash) {
+							window.location.href = url + window.location.hash;
+						} else {
+							window.location.href = url;
+						}
 					}
 				}
 				break;
@@ -567,5 +429,264 @@ Date.now = Date.now || function () {
 				} catch (e) {}
 			}
 		});
+	});
+})(jQuery);
+(function ($) {
+	"use strict";
+
+	var Shift = function Shift(element) {
+		this.$element = $(element);
+		this.$prev = this.$element.prev();
+		!this.$prev.length && (this.$parent = this.$element.parent());
+	};
+	Shift.prototype = {
+		constructor: Shift,
+		init: function init() {
+			var $el = this.$element,
+			    method = $el.data()['toggle'].split(':')[1],
+			    $target = $el.data('target');
+			$el.hasClass('in') || $el[method]($target).addClass('in');
+		},
+		reset: function reset() {
+			this.$parent && this.$parent['prepend'](this.$element);
+			!this.$parent && this.$element['insertAfter'](this.$prev);
+			this.$element.removeClass('in');
+		}
+	};
+	$.fn.shift = function (option) {
+		return this.each(function () {
+			var $this = $(this),
+			    data = $this.data('shift');
+			if (!data) $this.data('shift', data = new Shift(this));
+			if (typeof option === 'string') data[option]();
+		});
+	};
+	$.fn.shift.Constructor = Shift;
+})(jQuery);
+// wulaUI
+(function ($) {
+	"use strict";
+
+	var storage = window.localStorage;
+
+	$.wulaUI.init = function (opts, load) {
+
+		this.settings = $.extend({}, this.settings, opts || {});
+
+		$('body .wulaui').trigger('wulaui.widgets.init');
+
+		if (this.settings.hash) {
+			$(window).on('hashchange', this.load);
+
+			if (window.location.hash && load) {
+				this.load();
+			} else if ($.wulaUI.settings.home !== '#') {
+				window.location.hash = this.settings.home;
+			} else {
+				$('nav.nav-primary ul li:first').addClass('active');
+			}
+		}
+		return $.wulaUI;
+	};
+
+	$.wulaUI.load = function () {
+		var url = location.href.split('#').splice(1).join('#');
+		if (!url) {
+			// BEGIN: IE11 Work Around
+			try {
+				var documentUrl = window.document.URL;
+				if (documentUrl) {
+					if (documentUrl.indexOf('#', 0) > 0 && documentUrl.indexOf('#', 0) < documentUrl.length + 1) {
+						url = documentUrl.substring(documentUrl.indexOf('#', 0) + 1);
+					}
+				}
+			} catch (err) {}
+		}
+		if (!url && storage) {
+			url = storage.getItem('dashboard-cp-url');
+			if (url) {
+				url = url.replace(/^#+/gm, '#');
+				if (url.indexOf('#') === 0) {
+					location.href = location.href + url;
+				} else {
+					location.href = location.href + '#' + url;
+				}
+				return;
+			}
+		}
+		if (url) {
+			var ca = $('a[href^="#' + url + '"]'),
+			    thirdShow = false,
+			    id = '';
+			if (ca.length) {
+				if (ca.length > 1) {
+					ca.each(function (n, e) {
+						var $id = $(e).attr('id');
+						if ($id && $id.length > id.length) {
+							id = $id;
+						}
+					});
+				} else {
+					id = ca.attr('id');
+				}
+				if (id) {
+					var idary = id.split('-'),
+					    ids = [id, idary.length > 3 ? idary.slice(0, -1).join('-') : false],
+					    ida = [];
+					idary = idary.slice(1);
+
+					$('#third-navi-item').find('li').removeClass('active').find('a').removeClass('active');
+
+					$('ul.nav li').find('li').removeClass('active').find('a').removeClass('active');
+
+					for (var j = 0; j < idary.length; j++) {
+						ida[j] = idary[j];
+						$('#navi-' + ida.join('-')).addClass('active').closest('li').addClass('active');
+					}
+					if (ca.closest('ul.dropdown-menu').length) {
+						ca.removeClass('active').closest('li').removeClass('active');
+					}
+					//extends third navi menu
+					$.each(ids, function (i, e) {
+						if (thirdShow || !e) {
+							return;
+						}
+						var third = $('#' + e + '-sub');
+						if (third.length) {
+							$("#third-menu-name").text(third.data('name'));
+							$('#third-navi-item').find('ul').not(third).addClass('hide');
+							third.removeClass('hide');
+							thirdShow = true;
+						}
+					});
+				}
+			}
+			if (thirdShow) {
+				$('#third-navi').removeClass('hide');
+			} else {
+				$('#third-navi').addClass('hide');
+			}
+			$.ajax(url, {
+				type: "GET",
+				dataType: 'html',
+				cache: true,
+				beforeSend: function beforeSend() {
+					$("html").animate({
+						scrollTop: 0
+					}, "fast");
+				}
+			}).done(function (data) {
+				$('#wulaui-workbench').trigger('wulaui.widgets.destory').html(data).trigger('wulaui.widgets.init');
+			});
+		}
+	};
+	// class
+	$(document).on('click', '[data-toggle^="class"]', function (e) {
+		e && e.preventDefault();
+		var $this = $(e.target),
+		    $class = void 0,
+		    $target = void 0,
+		    $tmp = void 0,
+		    $classes = void 0,
+		    $targets = void 0;
+		!$this.data('toggle') && ($this = $this.closest('[data-toggle^="class"]'));
+		$class = $this.data()['toggle'];
+		$target = $this.data('target') || $this.attr('href');
+		$class && ($tmp = $class.split(':')[1]) && ($classes = $tmp.split(','));
+		$target && ($targets = $target.split(','));
+		$targets && $targets.length && $.each($targets, function (index) {
+			$targets[index] !== '#' && $($targets[index]).toggleClass($classes[index]);
+		});
+		$this.toggleClass('active');
+	});
+	var $window = $(window);
+	// mobile
+	var mobile = function mobile(option) {
+		if (option === 'reset') {
+			$('[data-toggle^="shift"]').shift('reset');
+		} else {
+			$('[data-toggle^="shift"]').shift('init');
+		}
+		return true;
+	};
+	// unmobile
+	$window.width() < 768 && mobile();
+	var $resize = void 0,
+	    $width = $window.width();
+	$window.resize(function () {
+		if ($width !== $window.width()) {
+			clearTimeout($resize);
+			$resize = setTimeout(function () {
+				setHeight();
+				$window.width() < 768 && mobile();
+				$window.width() >= 768 && mobile('reset') && fixVbox();
+				$width = $window.width();
+			}, 500);
+		}
+		$window.trigger('wulaui.layout');
+	}).resize();
+	$(document).on('click', "[data-toggle=fullscreen]", function () {
+		if (screenfull.enabled) {
+			screenfull.request();
+		}
+	});
+	// fluid layout
+	var setHeight = function setHeight() {
+		$('.app-fluid #nav > *').css('min-height', $(window).height());
+		return true;
+	};
+	setHeight();
+	// fix vbox
+	var fixVbox = function fixVbox() {
+		$('.ie11 .vbox').each(function () {
+			$(this).height($(this).parent().height());
+		});
+	};
+	fixVbox();
+	// collapse nav
+	$(document).on('click', '.nav-primary a', function (e) {
+		var $this = $(e.target),
+		    $active = void 0;
+		$this.is('a') || ($this = $this.closest('a'));
+		if ($('.nav-vertical').length) {
+			return;
+		}
+
+		$active = $this.parent().siblings(".active");
+		$active && $active.find('> a').toggleClass('active') && $active.toggleClass('active').find('> ul:visible').slideUp(200);
+
+		$this.hasClass('active') && $this.next().slideUp(200) || $this.next().slideDown(200);
+		$this.toggleClass('active').parent().toggleClass('active');
+
+		$this.next().is('ul') && e.preventDefault();
+
+		setTimeout(function () {
+			$(document).trigger('updateNav');
+		}, 300);
+	});
+	// dropdown still
+	$(document).on('click.bs.dropdown.data-api', '.dropdown .on, .dropup .on', function (e) {
+		e.stopPropagation();
+	});
+	// slim-scroll
+	var initSlim = function initSlim() {
+		var $self = $(this),
+		    $data = $self.data(),
+		    $slimResize = void 0;
+		$self.slimScroll($data);
+		$(window).resize(function () {
+			clearTimeout($slimResize);
+			$slimResize = setTimeout(function () {
+				$self.slimScroll($data);
+			}, 500);
+		});
+
+		$(document).on('updateNav', function () {
+			$self.slimScroll($data);
+		});
+	};
+	$('.no-touch .slim-scroll').each(initSlim);
+	$('body').on('wulaui.widgets.init', '.wulaui', function () {
+		$(this).find('.no-touch .slim-scroll').each(initSlim);
 	});
 })(jQuery);

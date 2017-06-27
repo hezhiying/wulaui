@@ -77,11 +77,11 @@ gulp.task('css', [], function () {
 gulp.task('js', [], function () {
 	console.log("compile js.");
 	let js = gulp.src([
+		'src/comm.js',
 		'src/i18n/*.js',
-		'src/components/shift.js',
-		'src/app.js',
-		'src/**/*.js'
-		])
+		'src/components/*.js',
+		'src/app.js'
+	])
 		.pipe(babel({
 			presets: ['env']
 		}))

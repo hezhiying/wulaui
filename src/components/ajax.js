@@ -5,9 +5,10 @@
 	// 重写ajax
 	$.ajax = function (url, options) {
 		return wulajax(url, options).done(data => {
-			//成功啦
-			showMsg(data);
-			ajaxAction(data);
+			if ((options && options.dataType === 'json') || (url && url.dataType === 'json')) {
+				showMsg(data);
+				ajaxAction(data);
+			}
 		});
 	};
 
@@ -76,7 +77,7 @@
 		if (opts.element.hasClass('data-loading-text')) {
 			opts.element.button('reset');
 		}
-		let e     = new $.Event(ajax.done);
+		let e     = new $.Event('ajax.done');
 		e.element = opts.element;
 		opts.element.trigger(e, [opts, xhr]);
 	});
@@ -245,7 +246,11 @@
 					if (url[0] === '#') {
 						window.location.hash = url;
 					} else {
-						window.location.href = url;
+						if (window.location.hash && data.hash) {
+							window.location.href = url + window.location.hash;
+						} else {
+							window.location.href = url;
+						}
 					}
 				}
 				break;
