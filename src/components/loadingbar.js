@@ -51,14 +51,25 @@
 		$(document).on('ajax.send', '[data-loading]', function (e) {
 			let me = e.element;
 			if (me.data('loading') !== undefined && me.data('loading') !== null) {
-				let jc = $.dialog({
-					title    : '',
-					type     : 'theme',
-					theme    : me.data('confirmTheme') || 'supervan',
-					content  : '<i class="fa fa-spinner fa-spin fa-4x" aria-hidden="true"></i>',
-					closeIcon: false,
-					container: me.data('confirmTarget') || 'body'
-				});
+				let jc;
+				if (me.data('loading')) {
+					jc         = {
+						close() {
+						}
+					};
+					let target = $(me.data('loading'));
+					$.wulaUI.destroyElement(target);
+					target.html('<p class="text-center m-xs"><i class="fa fa-spinner fa-spin fa-3x"></i></p>');
+				} else {
+					jc = $.dialog({
+						title    : '',
+						type     : 'theme',
+						theme    : me.data('loadingTheme') || 'supervan',
+						content  : '<i class="fa fa-spinner fa-spin fa-4x" aria-hidden="true"></i>',
+						closeIcon: false,
+						container: me.data('target') || 'body'
+					});
+				}
 				me.data('loading', jc);
 			}
 		});

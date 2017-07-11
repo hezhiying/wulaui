@@ -1,5 +1,7 @@
 less/ export-ignore
 src/ export-ignore
 demo/ export-ignore
+js/validate/jquery.validate.js export-ignore
+js/validate/addon.js export-ignore
 package.json export-ignore
 gulpfile.babel.js export-ignore

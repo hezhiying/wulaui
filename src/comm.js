@@ -7,10 +7,22 @@ Date.now = Date.now || function () {
 
 ($ => {
 	"use strict";
+	// 注册jquery
+	if ('function' === typeof define && define.amd) {
+		define('jquery', [], function () {
+			return $;
+		});
+	}
+	// wulaui
 	$.wulaUI = {
 		settings: {
-			home: '#',
-			hash: false
+			home     : '#',
+			hash     : false,
+			appConfig: {ids: [], groups: []},
+			requirejs: {
+				baseUrl: '/',
+				paths  : {}
+			}
 		}
 	};
 })(jQuery);

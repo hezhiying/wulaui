@@ -2,9 +2,12 @@
 ($ => {
 
 	$.fn.wulauiCombox = function () {
-		return $(this).each(function () {
-			const $this = $(this);
-			const ipt   = $this.find('input');
+		return $(this).each(function (i, e) {
+			const $this = $(e), inited = $this.data('comboxObj');
+			if (inited) {
+				return;
+			}
+			const ipt = $this.find('input');
 			$this.find('li').click(function () {
 				ipt.val($(this).data('value'));
 			});

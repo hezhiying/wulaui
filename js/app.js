@@ -7,11 +7,23 @@ Date.now = Date.now || function () {
 
 (function ($) {
 	"use strict";
+	// 注册jquery
 
+	if ('function' === typeof define && define.amd) {
+		define('jquery', [], function () {
+			return $;
+		});
+	}
+	// wulaui
 	$.wulaUI = {
 		settings: {
 			home: '#',
-			hash: false
+			hash: false,
+			appConfig: { ids: [], groups: [] },
+			requirejs: {
+				baseUrl: '/',
+				paths: {}
+			}
 		}
 	};
 })(jQuery);
@@ -58,7 +70,9 @@ Date.now = Date.now || function () {
 			yes1: 'Yes,Sure!',
 			no: 'No',
 			cancel: 'Cancel',
-			confirmTile: 'Are you sure?'
+			confirmTile: 'Are you sure?',
+			changNotSaved: 'Changes you made may not be saved.',
+			ajaxDataConvertException: 'Cannot convert response data to expected type.'
 		}
 	};
 })(jQuery);
@@ -70,9 +84,15 @@ Date.now = Date.now || function () {
 	// 重写ajax
 	$.ajax = function (url, options) {
 		return wulajax(url, options).done(function (data) {
-			if (options && options.dataType === 'json' || url && url.dataType === 'json') {
+			if (options.mode === 'abort') {
+				return;
+			}
+			var opts = options || url;
+			if (opts.dataType === 'json') {
 				showMsg(data);
 				ajaxAction(data);
+			} else if (opts.action === 'update' && opts.target) {
+				ajaxAction({ action: 'update', target: opts.target, args: { content: data } });
 			}
 		});
 	};
@@ -104,30 +124,42 @@ Date.now = Date.now || function () {
 			//处理错误
 			switch (xhr.status) {
 				case 500:
-					var text = xhr.responseText;
 					deal500({
 						message: function (t) {
-							t = t.substr(0, t.indexOf('</body>'));
-							t = t.substr(t.indexOf('>', t.indexOf('<body')) + 1);
+							if (t.indexOf('</body>')) {
+								t = t.substr(0, t.indexOf('</body>'));
+								t = t.substr(t.indexOf('>', t.indexOf('<body')) + 1);
+							}
 							return t;
-						}(text)
+						}(xhr.responseText)
 					});
 					break;
+				case 200:
+					//数据类型转换错误
+					deal500({
+						message: function (t) {
+							if (t.indexOf('</body>')) {
+								t = t.substr(0, t.indexOf('</body>'));
+								t = t.substr(t.indexOf('>', t.indexOf('<body')) + 1);
+							}
+							return t;
+						}(xhr.responseText)
+					}, $.lang.core.ajaxDataConvertException);
+					break;
 				case 401:
+					showNotice(xhr);
+					$(document).trigger('wula.need.login');
+					break;
 				case 403:
+					showNotice(xhr);
+					$(document).trigger('wula.perm.denied');
+					break;
 				case 404:
+					showNotice(xhr);
+					$(document).trigger('wula.page.404');
+					break;
 				default:
-					$.notify({
-						title: $.lang.core.error,
-						message: '<br/>' + xhr.statusText
-					}, {
-						type: 'danger',
-						z_index: 9000,
-						placement: {
-							from: "top",
-							align: "right"
-						}
-					});
+					showNotice(xhr);
 			}
 		}
 	});
@@ -158,7 +190,7 @@ Date.now = Date.now || function () {
 		e.stopPropagation();
 		var $this = $(this);
 		if ($this.data('ajaxSending')) {
-			return;
+			return false;
 		}
 		// ajax before,用户处理此事件做数据校验.
 		var event = $.Event('ajax.before');
@@ -172,8 +204,17 @@ Date.now = Date.now || function () {
 			var ajax = be.opts.ajax || 'get.json';
 			delete be.opts.ajax;
 			var types = ajax.split('.');
-			be.opts.method = types[0].toUpperCase();
 			be.opts.dataType = types.length === 2 ? types[1] : 'json';
+			var method = $this.attr('method') || (types[0] ? types[0] : null) || 'GET';
+			be.opts.method = method.toUpperCase();
+
+			if (be.opts.method === 'UPDATE') {
+				be.opts.method = 'GET';
+				be.opts.dataType = 'html';
+				be.opts.action = 'update';
+				be.opts.target = $this.attr('target') || $this.data('target');
+			}
+
 			$this.trigger(be);
 			if (!be.isDefaultPrevented()) {
 				if ($this.data('confirm') !== undefined) {
@@ -205,8 +246,7 @@ Date.now = Date.now || function () {
 										});
 
 										return false;
-									}
-									$.ajax(be.opts);
+									} else $.ajax(be.opts);
 								}
 							},
 							cancel: {
@@ -221,11 +261,11 @@ Date.now = Date.now || function () {
 		}
 		return false;
 	};
-	var deal500 = function deal500(data) {
+	var deal500 = function deal500(data, title) {
 		$.dialog({
 			icon: 'fa fa-warning',
 			theme: 'supervan',
-			title: '',
+			title: title ? title : '',
 			type: 'red',
 			content: data.message,
 			boxWidth: '80%',
@@ -302,14 +342,49 @@ Date.now = Date.now || function () {
 		}
 	};
 	var ajaxAction = function ajaxAction(data) {
+		var target = void 0;
 		switch (data.action) {
 			case 'update':
+				//更新内容
+				target = $(data.target);
+				if (target.length && data.args && data.args.content) {
+					var append = data.args.append;
+					if (append) {
+						var d = $(data.args.content);
+						target.append(d);
+						$.wulaUI.initElement(d);
+					} else {
+						$.wulaUI.destroyElement(target);
+						target.empty().html(data.args.content);
+						$.wulaUI.initElement(target);
+					}
+				}
 				break;
 			case 'reload':
+				//重新加载
+				target = $(data.target);
+				if (target.length) {
+					var loader = target.data('loaderObj');
+					try {
+						if (loader) {
+							loader.reload(null, true);
+						}
+					} catch (e) {}
+				}
 				break;
 			case 'click':
+				//点击
+				target = $(data.target);
+				if (target.length) {
+					if (/^#.+/.test(target.attr('href'))) {
+						window.location.hash = target.attr('href');
+					} else {
+						target.click();
+					}
+				}
 				break;
 			case 'redirect':
+				//重定向
 				var url = data.target;
 				if (url) {
 					if (url[0] === '#') {
@@ -324,23 +399,45 @@ Date.now = Date.now || function () {
 				}
 				break;
 			case 'validate':
-				break;
-			case 'script':
+				//表单验证
+				target = $('form[name="' + data.target + '"]');
+				var errs = data.args;
+				var obj = target.data('validateObj');
+				if (obj) {
+					obj.validate(errs);
+				}
 				break;
 			default:
 		}
 	};
+	var showNotice = function showNotice(xhr) {
+		$.notify({
+			title: $.lang.core.error,
+			message: '<br/>' + xhr.statusText
+		}, {
+			type: 'danger',
+			z_index: 9000,
+			placement: {
+				from: "top",
+				align: "right"
+			}
+		});
+	};
 	//页面加载完成时处理
 	$(function () {
-		$('body').on('click', '[data-ajax]', doAjaxRequest).on('submit', '[data-ajax]', doAjaxRequest);
+		$('body').on('click', '[data-ajax]:not(form)', doAjaxRequest).on('submit', 'form[data-ajax]', doAjaxRequest).on('change', 'select[data-ajax]', doAjaxRequest);
 	});
 })(jQuery);
 // wulaui.combox
 (function ($) {
 
 	$.fn.wulauiCombox = function () {
-		return $(this).each(function () {
-			var $this = $(this);
+		return $(this).each(function (i, e) {
+			var $this = $(e),
+			    inited = $this.data('comboxObj');
+			if (inited) {
+				return;
+			}
 			var ipt = $this.find('input');
 			$this.find('li').click(function () {
 				ipt.val($(this).data('value'));
@@ -352,6 +449,176 @@ Date.now = Date.now || function () {
 	$(function () {
 		$('body').on('wulaui.widgets.init', '.wulaui', function () {
 			$(this).find('[data-widget^=combox]').wulauiCombox();
+		});
+	});
+})(jQuery);
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+(function ($) {
+	var prepareValidateRule = function prepareValidateRule(rules) {
+		if ('object' !== (typeof rules === 'undefined' ? 'undefined' : _typeof(rules))) {
+			rules = $.parseJSON(rules);
+		}
+		if (rules.rules) {
+			for (var i in rules.rules) {
+				for (var j in rules.rules[i]) {
+					if (j == 'pattern') {
+						eval('var rule = ' + rules.rules[i][j] + ';');
+						rules.rules[i][j] = rule;
+					}
+				}
+			}
+		}
+		return rules;
+	};
+
+	var Validator = function Validator(form) {
+
+		this.form = form;
+		this.rules = prepareValidateRule(form.data('validate'));
+		var errorPlacement = function errorPlacement(error, element) {
+			error.insertAfter(element.parent());
+		};
+		var name = form.attr('name');
+		this.rules.errorPlacement = errorPlacement;
+		this.rules.onsubmit = false;
+		this.rules.debug = true;
+		this.validator = form.validate(this.rules);
+		var me = this;
+		form.on('ajax.before', function (e) {
+			return me.validate();
+		});
+
+		//注册销毁事件
+		form.closest('.wulaui').on('wulaui.widgets.destroy', this.destroy);
+	};
+
+	Validator.prototype.validate = function (errors) {
+		if (!this.validator) {
+			return false;
+		}
+		if (this.validator.form()) {
+			if (errors) {
+				this.validator.showErrors(errors);
+				return;
+			}
+			if (this.validator.pendingRequest) {
+				this.validator.formSubmitted = true;
+				return false;
+			}
+		}
+		return this.form.valid();
+	};
+
+	Validator.prototype.destroy = function () {
+		if (this.validator) {
+			this.validator.destroy();
+			this.validator = null;
+		}
+	};
+
+	$.fn.wulaform = function () {
+		var me = $(this);
+		if (me.length) {
+			requirejs(['validator'], function () {
+				me.each(function () {
+					var $this = $(this);
+					if (!$this.data('validateObj')) {
+						$this.data('validateObj', new Validator($this));
+					}
+				});
+			});
+		}
+		return me;
+	};
+
+	$(function () {
+		$(document).on('ajax.build', 'form[data-ajax]', function (e) {
+			e.opts.data = $.extend(true, e.opts.data || {}, $(this).serializeArray());
+		}).on('wulaui.widgets.init', '.wulaui', function () {
+			$(this).find('form[data-validate]').wulaform();
+		});
+	});
+})(jQuery);
+(function ($) {
+	//自动加载
+	$.fn.wulauiLoad = function () {
+		return $(this).each(function (i, e) {
+			var me = $(e),
+			    inited = me.data('loaderObj');
+			if (!inited) {
+				me.data('loaderObj', new doLoad(me));
+			}
+		});
+	};
+	$.fn.reload = function () {
+		return $(this).each(function (i, e) {
+			var inited = $(e).data('loaderObj');
+			if (inited) {
+				inited.reload();
+			}
+		});
+	};
+	var doLoad = function doLoad(element) {
+		this.autoload = element.data('auto') !== undefined;
+		this.lazy = element.data('lazy') !== undefined;
+		this.element = element;
+		if (this.autoload) {
+			this.reload();
+		}
+	};
+	// reload
+	doLoad.prototype.reload = function () {
+		var dirty = this.element.data('dirty'),
+		    checkDirty = this.element.data('checkDirty');
+		if (dirty && checkDirty !== undefined) {
+			var $this = this.element;
+			$.confirm({
+				content: checkDirty || $.lang.core.changNotSaved,
+				title: $this.data('confirmTitle') || $.lang.core.confirmTile,
+				icon: $this.data('confirmIcon') || 'fa fa-question-circle',
+				type: $this.data('confirmType') || 'orange',
+				theme: $this.data('confirmTheme') || 'material',
+				buttons: {
+					ok: {
+						text: $.lang.core.yes1,
+						btnClass: 'btn-blue',
+						keys: ['enter', 'a'],
+						action: function action() {
+							_doLoad.apply(this);
+						}
+					},
+					cancel: {
+						text: $.lang.core.cancel
+					}
+				}
+			});
+		} else {
+			_doLoad.apply(this);
+		}
+	};
+	var _doLoad = function _doLoad() {
+		var ourl = this.url ? this.url : '';
+		this.url = this.element.data('load');
+		if (!this.url || this.lazy && ourl === this.url) {
+			return;
+		}
+		var be = $.Event('ajax.build');
+		be.opts = $.extend({ element: this.element }, this.element.data() || {});
+		be.opts.url = this.url;
+		be.opts.method = 'GET';
+		be.opts.action = 'update';
+		be.opts.dataType = 'html';
+		be.opts.target = this.element;
+
+		this.element.trigger(be);
+		if (!be.isDefaultPrevented()) {
+			$.ajax(be.opts);
+		}
+	};
+	$(function () {
+		$('body').on('wulaui.widgets.init', '.wulaui', function () {
+			$(this).find('[data-load]').wulauiLoad();
 		});
 	});
 })(jQuery);
@@ -409,14 +676,24 @@ Date.now = Date.now || function () {
 		$(document).on('ajax.send', '[data-loading]', function (e) {
 			var me = e.element;
 			if (me.data('loading') !== undefined && me.data('loading') !== null) {
-				var jc = $.dialog({
-					title: '',
-					type: 'theme',
-					theme: me.data('confirmTheme') || 'supervan',
-					content: '<i class="fa fa-spinner fa-spin fa-4x" aria-hidden="true"></i>',
-					closeIcon: false,
-					container: me.data('confirmTarget') || 'body'
-				});
+				var jc = void 0;
+				if (me.data('loading')) {
+					jc = {
+						close: function close() {}
+					};
+					var target = $(me.data('loading'));
+					$.wulaUI.destroyElement(target);
+					target.html('<p class="text-center m-xs"><i class="fa fa-spinner fa-spin fa-3x"></i></p>');
+				} else {
+					jc = $.dialog({
+						title: '',
+						type: 'theme',
+						theme: me.data('loadingTheme') || 'supervan',
+						content: '<i class="fa fa-spinner fa-spin fa-4x" aria-hidden="true"></i>',
+						closeIcon: false,
+						container: me.data('target') || 'body'
+					});
+				}
 				me.data('loading', jc);
 			}
 		});
@@ -463,16 +740,104 @@ Date.now = Date.now || function () {
 	};
 	$.fn.shift.Constructor = Shift;
 })(jQuery);
+(function ($) {
+	$.fn.wulatree = function () {
+		return $(this).each(function () {
+			var me = $(this);
+			if (!me.data('treeObj')) {
+				me.data('treeObj', new WulaTree(me));
+			}
+		});
+	};
+	$.fn.wulatreeLoad = function () {
+		return $(this).each(function () {
+			var treeObj = $(this).data('treeObj');
+			if (treeObj) {
+				$(this).trigger('ztree.setting.load');
+			}
+		});
+	};
+	$.fn.wulatreed = function () {
+		return $(this).each(function () {
+			var treeObj = $(this).data('treeObj');
+			if (treeObj) {
+				$(this).data('treeObj', null);
+				treeObj.destroy();
+			}
+		});
+	};
+	var WulaTree = function WulaTree(element) {
+		var me = this;
+		this.settings = {
+			view: {},
+			callback: {},
+			edit: {
+				drap: {}
+			},
+			data: {
+				keep: {},
+				key: {},
+				simpleData: {}
+			},
+			check: {}
+		};
+		this.url = element.data('ztree');
+		this.lazy = element.data('lazy') !== undefined;
+		if (this.url) {
+			this.settings.async = {
+				enable: true,
+				url: this.url,
+				type: 'get',
+				dataType: 'json',
+				autoParam: ["id"]
+			};
+		}
+
+		element.on('ztree.setting.load', function () {
+			var e = $.Event('ztree.init');
+			e.tree = me;
+			element.trigger(e);
+			me.settings = e.tree.settings;
+			me.nodes = e.tree.nodes;
+			if (!e.isDefaultPrevented()) {
+				me.treeObj = $.fn.zTree.init(element, me.settings, me.nodes);
+				element.trigger('ztree.inited', [me.treeObj]);
+			}
+			element.off('ztree.setting.load');
+		}).closest('.wulaui').on('wulaui.widgets.destroy', me.destroy);
+
+		if (!this.lazy) {
+			element.trigger('ztree.setting.load');
+		}
+	};
+	WulaTree.prototype.destroy = function () {
+		if (this.treeObj) {
+			this.treeObj.destroy();
+			delete this.treeObj;
+		}
+	};
+	$(function () {
+		$('body').on('wulaui.widgets.init', '.wulaui', function () {
+			$(this).find('[data-ztree]').wulatree();
+		});
+	});
+})(jQuery);
 // wulaUI
 (function ($) {
 	"use strict";
 
 	var storage = window.localStorage;
-
 	$.wulaUI.init = function (opts, load) {
-
-		this.settings = $.extend({}, this.settings, opts || {});
-
+		this.settings = $.extend(true, this.settings, opts || {});
+		//init requirejs
+		if (this.settings.appConfig.ids) {
+			for (var i in this.settings.appConfig.ids) {
+				this.settings.requirejs.paths[i] = this.settings.appConfig.ids[i];
+			}
+		}
+		if (window.requirejs) {
+			requirejs.config(this.settings.requirejs);
+		}
 		$('body .wulaui').trigger('wulaui.widgets.init');
 
 		if (this.settings.hash) {
@@ -482,13 +847,59 @@ Date.now = Date.now || function () {
 				this.load();
 			} else if ($.wulaUI.settings.home !== '#') {
 				window.location.hash = this.settings.home;
-			} else {
-				$('nav.nav-primary ul li:first').addClass('active');
+			} else if ($('nav.nav-primary ul li.active').length === 0) {
+				$('nav.nav-primary ul.nav li:first').addClass('active');
 			}
 		}
+		$('body').trigger('wulaui.ready');
 		return $.wulaUI;
 	};
 
+	window.wulapp = $.wulaUI.app = function (url, hash) {
+		if (typeof url === "string") {
+			var config = this.settings.appConfig;
+			var chunks = url.split('/');
+			if (chunks[0].match(/^([~!@#%\^&\*])(.+)$/)) {
+				var id = RegExp.$2,
+				    prefix = RegExp.$1;
+				if (config.ids && config.ids[id]) {
+					id = config.ids[id];
+				}
+				if (config.groups && config.groups.char) {
+					for (var i = 0; i < config.groups.char.length; i++) {
+						if (config.groups.char[i] === prefix) {
+							prefix = config.groups.prefix[i];
+							break;
+						}
+					}
+				}
+				chunks[0] = prefix + id;
+			} else {
+				var _id = chunks[0];
+				if (config.ids && config.ids[_id]) {
+					_id = config.ids[_id];
+					chunks[0] = _id;
+				}
+			}
+			chunks[0] = (hash ? '#' : '') + config.base + chunks[0];
+			url = chunks.join('/');
+		}
+		return url;
+	};
+
+	$.wulaUI.initElement = function (e) {
+		if (e.hasClass('wulaui')) {
+			e.trigger('wulaui.widgets.init');
+		} else {
+			e.children('.wulaui').trigger('wulaui.widgets.init');
+		}
+	};
+	$.wulaUI.destroyElement = function (e) {
+		if (e.hasClass('wulaui')) {
+			e.trigger('wulaui.widgets.destroy');
+		}
+		e.find('.wulaui').trigger('wulaui.widgets.destroy');
+	};
 	$.wulaUI.load = function () {
 		var url = location.href.split('#').splice(1).join('#');
 		if (!url) {
@@ -515,19 +926,39 @@ Date.now = Date.now || function () {
 			}
 		}
 		if (url) {
-			var ca = $('a[href^="#' + url + '"]'),
+			var ca = $('a[href="#' + url + '"]'),
 			    thirdShow = false,
-			    id = '';
+			    id = '',
+			    target = null,
+			    useTarget = true;
+			if (!ca.length) {
+				var urls = url.split('/'),
+				    $i = -1,
+				    tmpa = urls.slice(0, $i);
+				useTarget = false;
+				while (tmpa.length > 1) {
+					var url1 = tmpa.join('/');
+					ca = $('a[href="#' + url1 + '"]');
+					if (!ca.length) {
+						ca = $('a[href="#' + url1 + '/"]');
+					} else {
+						break;
+					}
+					tmpa = urls.slice(0, --$i);
+				}
+			}
 			if (ca.length) {
 				if (ca.length > 1) {
 					ca.each(function (n, e) {
 						var $id = $(e).attr('id');
 						if ($id && $id.length > id.length) {
 							id = $id;
+							target = $(e).attr('target') || $(e).data('target');
 						}
 					});
 				} else {
 					id = ca.attr('id');
+					target = ca.attr('target') || ca.data('target');
 				}
 				if (id) {
 					var idary = id.split('-'),
@@ -535,16 +966,17 @@ Date.now = Date.now || function () {
 					    ida = [];
 					idary = idary.slice(1);
 
-					$('#third-navi-item').find('li').removeClass('active').find('a').removeClass('active');
-
-					$('ul.nav li').find('li').removeClass('active').find('a').removeClass('active');
+					$('ul.nav').find('li').removeClass('active').find('a').removeClass('active');
 
 					for (var j = 0; j < idary.length; j++) {
 						ida[j] = idary[j];
-						$('#navi-' + ida.join('-')).addClass('active').closest('li').addClass('active');
-					}
-					if (ca.closest('ul.dropdown-menu').length) {
-						ca.removeClass('active').closest('li').removeClass('active');
+						var na = $('#navi-' + ida.join('-'));
+						if (na.closest('ul.dropdown-menu').length === 0) {
+							na.addClass('active').closest('li').addClass('active');
+						}
+						if ($width < 1024 && na.data('hideNavi') !== undefined) {
+							$('#toggle-navi').not('.active').click();
+						}
 					}
 					//extends third navi menu
 					$.each(ids, function (i, e) {
@@ -576,7 +1008,10 @@ Date.now = Date.now || function () {
 					}, "fast");
 				}
 			}).done(function (data) {
-				$('#wulaui-workbench').trigger('wulaui.widgets.destory').html(data).trigger('wulaui.widgets.init');
+				var wb = useTarget && target ? $(target) : $('#wulaui-workbench');
+				$.wulaUI.destroyElement(wb);
+				wb.empty().html(data);
+				$.wulaUI.initElement(wb);
 			});
 		}
 	};
@@ -687,6 +1122,8 @@ Date.now = Date.now || function () {
 	};
 	$('.no-touch .slim-scroll').each(initSlim);
 	$('body').on('wulaui.widgets.init', '.wulaui', function () {
-		$(this).find('.no-touch .slim-scroll').each(initSlim);
+		if ($('html').hasClass('no-touch')) {
+			$(this).find('.slim-scroll').each(initSlim);
+		}
 	});
 })(jQuery);

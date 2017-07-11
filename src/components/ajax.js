@@ -5,9 +5,15 @@
 	// 重写ajax
 	$.ajax = function (url, options) {
 		return wulajax(url, options).done(data => {
-			if ((options && options.dataType === 'json') || (url && url.dataType === 'json')) {
+			if (options.mode === 'abort') {
+				return;
+			}
+			let opts = options || url;
+			if (opts.dataType === 'json') {
 				showMsg(data);
 				ajaxAction(data);
+			} else if (opts.action === 'update' && opts.target) {
+				ajaxAction({action: 'update', target: opts.target, args: {content: data}});
 			}
 		});
 	};
@@ -39,30 +45,42 @@
 			//处理错误
 			switch (xhr.status) {
 				case 500:
-					let text = xhr.responseText;
 					deal500({
 						message: (t => {
-							t = t.substr(0, t.indexOf('</body>'));
-							t = t.substr(t.indexOf('>', t.indexOf('<body')) + 1);
+							if (t.indexOf('</body>')) {
+								t = t.substr(0, t.indexOf('</body>'));
+								t = t.substr(t.indexOf('>', t.indexOf('<body')) + 1);
+							}
 							return t;
-						})(text)
+						})(xhr.responseText)
 					});
 					break;
+				case 200:
+					//数据类型转换错误
+					deal500({
+						message: (t => {
+							if (t.indexOf('</body>')) {
+								t = t.substr(0, t.indexOf('</body>'));
+								t = t.substr(t.indexOf('>', t.indexOf('<body')) + 1);
+							}
+							return t;
+						})(xhr.responseText)
+					}, $.lang.core.ajaxDataConvertException);
+					break;
 				case 401:
+					showNotice(xhr);
+					$(document).trigger('wula.need.login');
+					break;
 				case 403:
+					showNotice(xhr);
+					$(document).trigger('wula.perm.denied');
+					break;
 				case 404:
+					showNotice(xhr);
+					$(document).trigger('wula.page.404');
+					break;
 				default:
-					$.notify({
-						title  : $.lang.core.error,
-						message: '<br/>' + xhr.statusText
-					}, {
-						type     : 'danger',
-						z_index  : 9000,
-						placement: {
-							from : "top",
-							align: "right"
-						}
-					});
+					showNotice(xhr);
 			}
 		}
 	});
@@ -93,7 +111,7 @@
 		e.stopPropagation();
 		let $this = $(this);
 		if ($this.data('ajaxSending')) {
-			return;
+			return false;
 		}
 		// ajax before,用户处理此事件做数据校验.
 		let event     = $.Event('ajax.before');
@@ -107,8 +125,17 @@
 			let ajax    = be.opts.ajax || 'get.json';
 			delete be.opts.ajax;
 			let types        = ajax.split('.');
-			be.opts.method   = types[0].toUpperCase();
 			be.opts.dataType = types.length === 2 ? types[1] : 'json';
+			let method       = $this.attr('method') || (types[0] ? types[0] : null) || 'GET';
+			be.opts.method   = method.toUpperCase();
+
+			if (be.opts.method === 'UPDATE') {
+				be.opts.method   = 'GET';
+				be.opts.dataType = 'html';
+				be.opts.action   = 'update';
+				be.opts.target   = $this.attr('target') || $this.data('target');
+			}
+
 			$this.trigger(be);
 			if (!be.isDefaultPrevented()) {
 				if ($this.data('confirm') !== undefined) {
@@ -140,8 +167,8 @@
 										});
 
 										return false;
-									}
-									$.ajax(be.opts);
+									} else
+										$.ajax(be.opts);
 								}
 							},
 							cancel: {
@@ -156,11 +183,11 @@
 		}
 		return false;
 	};
-	const deal500       = function (data) {
+	const deal500       = function (data, title) {
 		$.dialog({
 			icon        : 'fa fa-warning',
 			theme       : 'supervan',
-			title       : '',
+			title       : title ? title : '',
 			type        : 'red',
 			content     : data.message,
 			boxWidth    : '80%',
@@ -233,14 +260,51 @@
 		}
 	};
 	const ajaxAction    = (data) => {
+		let target;
 		switch (data.action) {
 			case 'update':
+				//更新内容
+				target = $(data.target);
+				if (target.length && data.args && data.args.content) {
+					let append = data.args.append;
+					if (append) {
+						let d = $(data.args.content);
+						target.append(d);
+						$.wulaUI.initElement(d);
+					} else {
+						$.wulaUI.destroyElement(target);
+						target.empty().html(data.args.content);
+						$.wulaUI.initElement(target);
+					}
+				}
 				break;
 			case 'reload':
+				//重新加载
+				target = $(data.target);
+				if (target.length) {
+					let loader = target.data('loaderObj');
+					try {
+						if (loader) {
+							loader.reload(null, true);
+						}
+					} catch (e) {
+
+					}
+				}
 				break;
 			case 'click':
+				//点击
+				target = $(data.target);
+				if (target.length) {
+					if (/^#.+/.test(target.attr('href'))) {
+						window.location.hash = target.attr('href');
+					} else {
+						target.click();
+					}
+				}
 				break;
 			case 'redirect':
+				//重定向
 				let url = data.target;
 				if (url) {
 					if (url[0] === '#') {
@@ -255,14 +319,32 @@
 				}
 				break;
 			case 'validate':
-				break;
-			case 'script':
+				//表单验证
+				target   = $('form[name="' + data.target + '"]');
+				let errs = data.args;
+				let obj  = target.data('validateObj');
+				if (obj) {
+					obj.validate(errs);
+				}
 				break;
 			default:
 		}
 	};
+	const showNotice    = (xhr) => {
+		$.notify({
+			title  : $.lang.core.error,
+			message: '<br/>' + xhr.statusText
+		}, {
+			type     : 'danger',
+			z_index  : 9000,
+			placement: {
+				from : "top",
+				align: "right"
+			}
+		});
+	};
 	//页面加载完成时处理
 	$(() => {
-		$('body').on('click', '[data-ajax]', doAjaxRequest).on('submit', '[data-ajax]', doAjaxRequest);
+		$('body').on('click', '[data-ajax]:not(form)', doAjaxRequest).on('submit', 'form[data-ajax]', doAjaxRequest).on('change', 'select[data-ajax]', doAjaxRequest);
 	});
 })(jQuery);

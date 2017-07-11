@@ -59,5 +59,6 @@ typings/
 
 css/app.css
 css/plugins.css
+js/validate.js
 package-lock.json
 .idea/

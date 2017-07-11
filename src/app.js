@@ -2,11 +2,17 @@
 (function ($) {
 	"use strict";
 	const storage = window.localStorage;
-
 	$.wulaUI.init = function (opts, load) {
-
-		this.settings = $.extend({}, this.settings, opts || {});
-
+		this.settings = $.extend(true, this.settings, opts || {});
+		//init requirejs
+		if (this.settings.appConfig.ids) {
+			for (let i in this.settings.appConfig.ids) {
+				this.settings.requirejs.paths[i] = this.settings.appConfig.ids[i];
+			}
+		}
+		if (window.requirejs) {
+			requirejs.config(this.settings.requirejs);
+		}
 		$('body .wulaui').trigger('wulaui.widgets.init');
 
 		if (this.settings.hash) {
@@ -16,14 +22,60 @@
 				this.load();
 			} else if ($.wulaUI.settings.home !== '#') {
 				window.location.hash = this.settings.home;
-			} else {
-				$('nav.nav-primary ul li:first').addClass('active');
+			} else if ($('nav.nav-primary ul li.active').length === 0) {
+				$('nav.nav-primary ul.nav li:first').addClass('active');
 			}
 		}
+		$('body').trigger('wulaui.ready');
 		return $.wulaUI;
 	};
 
-	$.wulaUI.load = function () {
+	window.wulapp = $.wulaUI.app = function (url, hash) {
+		if (typeof(url) === "string") {
+			let config = this.settings.appConfig;
+			let chunks = url.split('/');
+			if (chunks[0].match(/^([~!@#%\^&\*])(.+)$/)) {
+				let id     = RegExp.$2,
+					prefix = RegExp.$1;
+				if (config.ids && config.ids[id]) {
+					id = config.ids[id];
+				}
+				if (config.groups && config.groups.char) {
+					for (let i = 0; i < config.groups.char.length; i++) {
+						if (config.groups.char[i] === prefix) {
+							prefix = config.groups.prefix[i];
+							break;
+						}
+					}
+				}
+				chunks[0] = prefix + id;
+			} else {
+				let id = chunks[0];
+				if (config.ids && config.ids[id]) {
+					id        = config.ids[id];
+					chunks[0] = id;
+				}
+			}
+			chunks[0] = (hash ? '#' : '') + config.base + chunks[0];
+			url       = chunks.join('/');
+		}
+		return url;
+	};
+
+	$.wulaUI.initElement    = function (e) {
+		if (e.hasClass('wulaui')) {
+			e.trigger('wulaui.widgets.init');
+		} else {
+			e.children('.wulaui').trigger('wulaui.widgets.init');
+		}
+	};
+	$.wulaUI.destroyElement = function (e) {
+		if (e.hasClass('wulaui')) {
+			e.trigger('wulaui.widgets.destroy');
+		}
+		e.find('.wulaui').trigger('wulaui.widgets.destroy');
+	};
+	$.wulaUI.load           = function () {
 		let url = location.href.split('#').splice(1).join('#');
 		if (!url) {// BEGIN: IE11 Work Around
 			try {
@@ -50,33 +102,50 @@
 			}
 		}
 		if (url) {
-			let ca = $('a[href^="#' + url + '"]'), thirdShow = false, id = '';
+			let ca = $('a[href="#' + url + '"]'), thirdShow = false, id = '', target = null, useTarget = true;
+			if (!ca.length) {
+				let urls  = url.split('/'), $i = -1, tmpa = urls.slice(0, $i);
+				useTarget = false;
+				while (tmpa.length > 1) {
+					let url1 = tmpa.join('/');
+					ca       = $('a[href="#' + url1 + '"]');
+					if (!ca.length) {
+						ca = $('a[href="#' + url1 + '/"]');
+					} else {
+						break;
+					}
+					tmpa = urls.slice(0, --$i);
+				}
+			}
 			if (ca.length) {
 				if (ca.length > 1) {
 					ca.each((n, e) => {
 						let $id = $(e).attr('id');
 						if ($id && $id.length > id.length) {
-							id = $id;
+							id     = $id;
+							target = $(e).attr('target') || $(e).data('target');
 						}
 					});
 				} else {
-					id = ca.attr('id');
+					id     = ca.attr('id');
+					target = ca.attr('target') || ca.data('target');
 				}
 				if (id) {
 					let idary = id.split('-'), ids = [id, idary.length > 3 ? idary.slice(0, -1).join('-') : false],
 						ida                        = [];
 					idary                          = idary.slice(1);
 
-					$('#third-navi-item').find('li').removeClass('active').find('a').removeClass('active');
-
-					$('ul.nav li').find('li').removeClass('active').find('a').removeClass('active');
+					$('ul.nav').find('li').removeClass('active').find('a').removeClass('active');
 
 					for (let j = 0; j < idary.length; j++) {
 						ida[j] = idary[j];
-						$('#navi-' + ida.join('-')).addClass('active').closest('li').addClass('active');
-					}
-					if (ca.closest('ul.dropdown-menu').length) {
-						ca.removeClass('active').closest('li').removeClass('active');
+						let na = $('#navi-' + ida.join('-'));
+						if (na.closest('ul.dropdown-menu').length === 0) {
+							na.addClass('active').closest('li').addClass('active');
+						}
+						if ($width < 1024 && na.data('hideNavi') !== undefined) {
+							$('#toggle-navi').not('.active').click();
+						}
 					}
 					//extends third navi menu
 					$.each(ids, (i, e) => {
@@ -108,10 +177,10 @@
 					}, "fast");
 				}
 			}).done(data => {
-				$('#wulaui-workbench')
-					.trigger('wulaui.widgets.destory')
-					.html(data)
-					.trigger('wulaui.widgets.init');
+				let wb = (useTarget && target) ? $(target) : $('#wulaui-workbench');
+				$.wulaUI.destroyElement(wb);
+				wb.empty().html(data);
+				$.wulaUI.initElement(wb);
 			});
 		}
 	};
@@ -213,6 +282,8 @@
 	};
 	$('.no-touch .slim-scroll').each(initSlim);
 	$('body').on('wulaui.widgets.init', '.wulaui', function () {
-		$(this).find('.no-touch .slim-scroll').each(initSlim);
+		if ($('html').hasClass('no-touch')) {
+			$(this).find('.slim-scroll').each(initSlim);
+		}
 	});
 })(jQuery);
