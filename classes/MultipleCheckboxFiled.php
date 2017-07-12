@@ -1,29 +1,26 @@
 <?php
-/*
- * This file is part of wulacms.
+/**
  *
- * (c) Leo Ning <windywany@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * User: Leo Ning.
+ * Date: 2017/7/12 0012 下午 3:57
  */
 
 namespace wula\ui\classes;
 
 use wulaphp\form\FormField;
 
-class RadioField extends FormField {
+class MultipleCheckboxFiled extends FormField {
 	public function getName() {
-		return _tr('Radio@form');
+		return _tr('Multiple Checkbox@form');
 	}
 
-	public function renderWidget($opts = []) {
+	protected function renderWidget($opts) {
 		$definition = $this->options;
 		$data       = $this->getDataProvidor()->getData();
 		$id         = isset ($definition ['id']) ? $definition ['id'] : $definition ['name'];
 		$html       = [];
 		$inline     = isset($definition['inline']);
-		$lableCls   = $inline ? 'radio-inline' : 'radio';
+		$lableCls   = $inline ? 'checkbox-inline' : 'checkbox';
 		if ($data) {
 			$values = $this->value;
 			if (!$values) {
@@ -43,10 +40,10 @@ class RadioField extends FormField {
 						$checked = ' checked="checked" ';
 					}
 					if ($inline) {
-						$html [] = '<label class="' . $lableCls . '"><input id="' . $id . '_' . $key . '" type="radio"' . $class . $readonly . $disabled . $checked . ' name="' . $this->name . '"' . $val . '/>' . $d . '</label>';
+						$html [] = '<label class="' . $lableCls . '"><input id="' . $id . '_' . $key . '" type="checkbox"' . $class . $readonly . $disabled . $checked . ' name="' . $this->name . '[]"' . $val . '/>' . $d . '</label>';
 					} else {
-						$html [] = '<div class="radio">';
-						$html [] = '<label><input id="' . $id . '_' . $key . '" type="radio"' . $class . $readonly . $disabled . $checked . ' name="' . $this->name . '"' . $val . '/>' . $d . '</label>';
+						$html [] = '<div class="checkbox">';
+						$html [] = '<label><input id="' . $id . '_' . $key . '" type="checkbox"' . $class . $readonly . $disabled . $checked . ' name="' . $this->name . '[]"' . $val . '/>' . $d . '</label>';
 						$html [] = '</div>';
 					}
 				}

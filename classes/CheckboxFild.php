@@ -23,13 +23,14 @@ class CheckboxFild extends FormField {
 		return _tr('Checkbox@form');
 	}
 
-	public function render($opts = []) {
+	public function renderWidget($opts = []) {
 		$definition = $this->options;
 		$id         = isset ($definition ['id']) ? $definition ['id'] : $this->name;
 		$readonly   = isset ($definition ['readonly']) ? ' readonly="readonly" ' : '';
 		$disabled   = isset ($definition ['disabled']) ? ' disabled="disabled" ' : '';
 		$checked    = $this->value ? ' checked="checked" ' : '';
+		$class      = isset ($definition ['class']) ? ' class="' . $definition['class'] . '" ' : '';
 
-		return '<input id="' . $id . '" type="checkbox"' . $readonly . $disabled . $checked . ' name="' . $this->name . '"/>';
+		return '<input id="' . $id . '" type="checkbox"' . $class . $readonly . $disabled . $checked . ' name="' . $this->name . '"/>';
 	}
 }

@@ -17,8 +17,16 @@ class PasswordField extends FormField {
 		return _tr('Password@form');
 	}
 
-	public function render($opts = []) {
-		return '';
+	public function renderWidget($opts = []) {
+		$definition = $this->options;
+		$id         = isset ($definition ['id']) ? $definition ['id'] : $definition ['name'];
+		$pl         = isset ($definition ['placeholder']) ? 'placeholder="' . $definition ['placeholder'] . '" ' : '';
+		$readonly   = isset ($definition ['readonly']) ? ' readonly="readonly" ' : '';
+		$disabled   = isset ($definition ['disabled']) ? ' disabled="disabled" ' : '';
+		$class      = isset ($definition ['class']) ? $definition['class'] : '';
+		$html       = '<input id="' . $id . '" type="password" ' . $pl . $readonly . $disabled . ' name="' . $this->name . '" value="' . html_escape($this->value) . '" class="form-control ' . $class . '"/>';
+
+		return $html;
 	}
 
 }

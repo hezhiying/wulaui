@@ -20,6 +20,9 @@
 
 	//修改默认的ajax行为
 	$(document).ajaxSend((event, xhr, opts) => {
+		if (opts.mode === 'abort') {
+			return;
+		}
 		if (!opts.element) {
 			opts.element = $('body');
 		} else {
@@ -38,6 +41,9 @@
 	});
 
 	$(document).ajaxError((event, xhr, opts, error) => {
+		if (opts.mode === 'abort') {
+			return;
+		}
 		$.wulaUI.loadingBar.error();
 		let e = $.Event('ajax.error');
 		opts.element.trigger(e, [opts, error, xhr]);
@@ -86,11 +92,17 @@
 	});
 
 	$(document).ajaxSuccess((event, xhr, opts, data) => {
+		if (opts.mode === 'abort') {
+			return;
+		}
 		$.wulaUI.loadingBar.success();
 		opts.element.trigger('ajax.success', [data, opts, xhr]);
 	});
 
 	$(document).ajaxComplete((event, xhr, opts) => {
+		if (opts.mode === 'abort') {
+			return;
+		}
 		opts.element.data('ajaxSending', false);
 		if (opts.element.hasClass('data-loading-text')) {
 			opts.element.button('reset');

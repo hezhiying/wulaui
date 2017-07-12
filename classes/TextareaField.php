@@ -17,7 +17,7 @@ class TextareaField extends FormField {
 		return _tr('Textarea@from');
 	}
 
-	public function render($opts = []) {
+	public function renderWidget($opts = []) {
 		$definition = $this->options;
 		$id         = isset ($definition ['id']) ? $definition ['id'] : $definition ['name'];
 		$row        = isset ($definition ['row']) ? $definition ['row'] : '3';
@@ -26,7 +26,8 @@ class TextareaField extends FormField {
 		$readonly             = isset ($definition ['readonly']) ? ' readonly="readonly" ' : '';
 		$disabled             = isset ($definition ['disabled']) ? ' disabled="disabled" ' : '';
 		$placeholder          = isset ($definition ['placeholder']) ? ' placeholder="' . $definition ['placeholder'] . '" ' : '';
-		$html []              = '<textarea id="' . $id . '" rows="' . $row . '"' . $readonly . $disabled . $placeholder . ' name="' . $this->name . '" class="form-control">' . $definition ['value'] . '</textarea>';
+		$class                = isset ($definition ['class']) ? $definition['class']:'';
+		$html []              = '<textarea id="' . $id . '" rows="' . $row . '"'. $readonly . $disabled . $placeholder . ' name="' . $this->name . '" class="form-control ' . $class . '">' . $definition ['value'] . '</textarea>';
 
 		return implode('', $html);
 	}

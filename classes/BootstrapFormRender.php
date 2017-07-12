@@ -145,6 +145,7 @@ class BootstrapFormRender extends FormRender {
 							$chunk[] = '<label class="control-label ' . $this->options['label-col'] . '">&nbsp;</label>';
 						}
 						$chunk[] = '<div class="' . $this->options['field-col'] . '">';//2
+						$chunk[] = '<div class="row">';
 						foreach ($fields as $_field) {
 							@list($field, $col) = $_field;
 							$chunk[]  = '<div class="' . $col . '">';//3
@@ -163,7 +164,7 @@ class BootstrapFormRender extends FormRender {
 
 							$chunk[] = '</div>';//3
 						}
-						$chunk[] = '</div></div>';//1,2
+						$chunk[] = '</div></div></div>';//1,2
 						$html[]  = implode("\n", $chunk);
 					} else {
 						$field    = $fields[0][0];

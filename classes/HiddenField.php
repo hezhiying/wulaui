@@ -17,7 +17,10 @@ class HiddenField extends FormField {
 		return _tr('Hidden@form');
 	}
 
-	public function render($opts = []) {
-		return '';
+	public function renderWidget($opts = []) {
+		$definition = $this->options;
+		$id         = isset ($definition ['id']) ? $definition ['id'] : $definition ['name'];
+
+		return '<input type="hidden" id="' . $id . '" name="' . $definition ['name'] . '" value="' . html_escape($definition ['value']) . '"/>';
 	}
 }

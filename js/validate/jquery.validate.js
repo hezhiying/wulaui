@@ -679,12 +679,20 @@
 			},
 
 			elementValue: function (element) {
-				var $element = $(element),
+				let $element = $(element),
 					type     = element.type,
 					val, idx;
 
 				if (type === "radio" || type === "checkbox") {
-					return this.findByName(element.name).filter(":checked").val();
+					let elements = this.findByName(element.name);
+					if(elements.length > 1){
+						let vals = [];
+						elements.filter(":checked").each((i,ex)=>{
+							vals.push($(ex).val());
+						});
+						return vals;
+					}
+					return elements.filter(":checked").val();
 				} else if (type === "number" && typeof element.validity !== "undefined") {
 					return element.validity.badInput ? "NaN" : $element.val();
 				}
@@ -934,7 +942,7 @@
 					if (this.settings.wrapper) {
 						// Make sure the element is visible, even in IE
 						// actually showing the wrapped element is handled elsewhere
-						place = error.hide().show().wrap("<" + this.settings.wrapper + " class=\""+this.settings.wrapperClass+"\"/>").parent();
+						place = error.hide().show().wrap("<" + this.settings.wrapper + " class=\"" + this.settings.wrapperClass + "\"/>").parent();
 					}
 					if (this.labelContainer.length) {
 						this.labelContainer.append(place);
@@ -1496,25 +1504,35 @@
 
 				data               = {};
 				data[element.name] = value;
-				if(param.rqs){
+				if (param.rqs) {
 					let cform = $(this.currentForm);
-					for(i in param.rqs){
+					for (i in param.rqs) {
 						let fn = param.rqs[i];
-						if(!fn){
+						if (!fn) {
 							break;
 						}
-						let fe = cform.find('[name='+fn+']').eq(0);
-						if(fe.is('[type=checkbox]')){
-							data[fn] = fe.prop('checked');
-						}else if(fe.is('[type=radio]')){
-							fe = cform.find('[name='+fn+']:checked');
+						let fe = cform.find('[name="' + fn + '"]').eq(0);
+						if (fe.is('[type=checkbox]')) {
+							if (fe.length) {
+								data[fn] = ((checkeds) => {
+									let ids = [];
+									checkeds.each((i, e) => {
+										ids.push($(e).val());
+									});
+									return ids;
+								})(cform.find('[name="' + fn + '"]:checked'));
+							} else {
+								data[fn] = fe.prop('checked');
+							}
+						} else if (fe.is('[type=radio]')) {
+							fe       = cform.find('[name="' + fn + '"]:checked');
 							data[fn] = fe.val();
-						}else{
+						} else {
 							data[fn] = fe.val();
 						}
 					}
 				}
-				let e              = $.Event('validate.remote');
+				let e = $.Event('validate.remote');
 
 				e.param = param;
 				$(element).trigger(e);

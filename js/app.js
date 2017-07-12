@@ -99,6 +99,9 @@ Date.now = Date.now || function () {
 
 	//修改默认的ajax行为
 	$(document).ajaxSend(function (event, xhr, opts) {
+		if (opts.mode === 'abort') {
+			return;
+		}
 		if (!opts.element) {
 			opts.element = $('body');
 		} else {
@@ -117,6 +120,9 @@ Date.now = Date.now || function () {
 	});
 
 	$(document).ajaxError(function (event, xhr, opts, error) {
+		if (opts.mode === 'abort') {
+			return;
+		}
 		$.wulaUI.loadingBar.error();
 		var e = $.Event('ajax.error');
 		opts.element.trigger(e, [opts, error, xhr]);
@@ -165,11 +171,17 @@ Date.now = Date.now || function () {
 	});
 
 	$(document).ajaxSuccess(function (event, xhr, opts, data) {
+		if (opts.mode === 'abort') {
+			return;
+		}
 		$.wulaUI.loadingBar.success();
 		opts.element.trigger('ajax.success', [data, opts, xhr]);
 	});
 
 	$(document).ajaxComplete(function (event, xhr, opts) {
+		if (opts.mode === 'abort') {
+			return;
+		}
 		opts.element.data('ajaxSending', false);
 		if (opts.element.hasClass('data-loading-text')) {
 			opts.element.button('reset');
@@ -471,18 +483,42 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		}
 		return rules;
 	};
-
+	var errorPlacement = function errorPlacement(error, element) {
+		if (element.is('[type=checkbox]') || element.is('[type=radio]')) {
+			var wrap = element.closest('div');
+			if (wrap.is('.checkbox') || wrap.is('.radio')) {
+				wrap = wrap.parent().closest('div');
+			}
+			if (wrap.children('span')) {
+				error.insertBefore(wrap.children('span'));
+			} else {
+				error.appendTo(wrap);
+			}
+		} else {
+			var e = $.Event('form.placement');
+			element.trigger(e, [error, element]);
+			if (!e.isDefaultPrevented()) {
+				error.insertAfter(element);
+			}
+		}
+	};
 	var Validator = function Validator(form) {
-
 		this.form = form;
 		this.rules = prepareValidateRule(form.data('validate'));
 		var name = form.attr('name');
+		this.rules.errorPlacement = errorPlacement;
 		this.rules.onsubmit = false;
+		this.rules.ignoreTitle = true;
 		this.rules.errorClass = 'parsley-error';
 		this.rules.validClass = 'parsley-success';
 		this.rules.wrapper = 'ul';
 		this.rules.wrapperClass = 'parsley-error-list';
 		this.rules.errorElement = 'li';
+		//可以通过事件定制高级验证规则
+		var e = new $.Event('form.init.rule');
+		e.form = this;
+		this.form.trigger(e);
+
 		this.validator = form.validate(this.rules);
 		var me = this;
 		form.on('ajax.before', function () {
