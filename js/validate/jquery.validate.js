@@ -1504,16 +1504,15 @@
 							break;
 						}
 						let fe = cform.find('[name='+fn+']').eq(0);
-						if(fe.is('checkbox')){
-							data[fn] = fe.checked();
-						}else if(fe.is('radio')){
+						if(fe.is('[type=checkbox]')){
+							data[fn] = fe.prop('checked');
+						}else if(fe.is('[type=radio]')){
 							fe = cform.find('[name='+fn+']:checked');
 							data[fn] = fe.val();
 						}else{
 							data[fn] = fe.val();
 						}
 					}
-					delete param.rqs;
 				}
 				let e              = $.Event('validate.remote');
 
