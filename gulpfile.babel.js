@@ -64,7 +64,7 @@ gulp.task('default', ['build'], function () {
 });
 
 // 生成最终文件，并清空生成的中间文件.
-gulp.task('build', ['ccss', 'js','gv'], function () {
+gulp.task('build', ['ccss', 'js', 'gv'], function () {
 
 });
 
@@ -73,24 +73,26 @@ gulp.task('css', [], function () {
 	console.log("compile app.less.");
 	return gulp.src('less/app.less').pipe(less()).pipe(gulp.dest('css'));
 });
-gulp.task('gv',[],function () {
+gulp.task('gv', [], function () {
 	console.log("compile validate js.");
 	let js = gulp.src([
-		'js/validate/jquery.validate.js',
-		'js/validate/addon.js'
+		'js/validate/jquery.validate.js'
 	]).pipe(babel({
-			presets: ['env']
-		}))
+		presets: ['env']
+	}))
 		.pipe(jsvalidate())
 		.on('error', notify.onError(e => e.message))
 		.pipe(concat('validate.js'))
 		.pipe(gulp.dest('js'));
 
-		return js.pipe(uglify())
-			.pipe(rename({
-				extname: '.min.js'
-			}))
-			.pipe(gulp.dest('js/validate'));
+	if (options.env === 'production')
+		js.pipe(uglify());
+
+	return js
+		.pipe(rename({
+			extname: '.min.js'
+		}))
+		.pipe(gulp.dest('js/validate'));
 });
 // 合并js文件
 gulp.task('js', [], function () {
@@ -124,5 +126,5 @@ gulp.task('watch', ['build'], function () {
 
 		fallback: '404.html'
 	}));
-	return gulp.watch(['less/**', 'src/**','js/validate/jquery.validate.js','js/validate/addon.js'], ['ccss', 'js','gv']);
+	return gulp.watch(['less/**', 'src/**', 'js/validate/jquery.validate.js'], ['ccss', 'js', 'gv']);
 });

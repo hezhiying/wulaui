@@ -5,10 +5,10 @@
 	// 重写ajax
 	$.ajax = function (url, options) {
 		return wulajax(url, options).done(data => {
-			if (options.mode === 'abort') {
+			let opts = options || url;
+			if (opts.mode === 'abort') {
 				return;
 			}
-			let opts = options || url;
 			if (opts.dataType === 'json') {
 				showMsg(data);
 				ajaxAction(data);

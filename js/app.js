@@ -84,10 +84,10 @@ Date.now = Date.now || function () {
 	// 重写ajax
 	$.ajax = function (url, options) {
 		return wulajax(url, options).done(function (data) {
-			if (options.mode === 'abort') {
+			var opts = options || url;
+			if (opts.mode === 'abort') {
 				return;
 			}
-			var opts = options || url;
 			if (opts.dataType === 'json') {
 				showMsg(data);
 				ajaxAction(data);
