@@ -126,5 +126,7 @@ gulp.task('watch', ['build'], function () {
 
 		fallback: '404.html'
 	}));
-	return gulp.watch(['less/**', 'src/**', 'js/validate/jquery.validate.js'], ['ccss', 'js', 'gv']);
+	gulp.watch(['less/**'], ['ccss']);
+	gulp.watch(['src/**'], ['js']);
+	gulp.watch(['js/validate/jquery.validate.js'], ['gv']);
 });
