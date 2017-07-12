@@ -476,16 +476,16 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 		this.form = form;
 		this.rules = prepareValidateRule(form.data('validate'));
-		var errorPlacement = function errorPlacement(error, element) {
-			error.insertAfter(element.parent());
-		};
 		var name = form.attr('name');
-		this.rules.errorPlacement = errorPlacement;
 		this.rules.onsubmit = false;
-		this.rules.debug = true;
+		this.rules.errorClass = 'parsley-error';
+		this.rules.validClass = 'parsley-success';
+		this.rules.wrapper = 'ul';
+		this.rules.wrapperClass = 'parsley-error-list';
+		this.rules.errorElement = 'li';
 		this.validator = form.validate(this.rules);
 		var me = this;
-		form.on('ajax.before', function (e) {
+		form.on('ajax.before', function () {
 			return me.validate();
 		});
 
@@ -534,7 +534,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 	$(function () {
 		$(document).on('ajax.build', 'form[data-ajax]', function (e) {
-			e.opts.data = $.extend(true, e.opts.data || {}, $(this).serializeArray());
+			e.opts.data = $(this).serializeArray();
 		}).on('wulaui.widgets.init', '.wulaui', function () {
 			$(this).find('form[data-validate]').wulaform();
 		});

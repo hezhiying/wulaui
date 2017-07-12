@@ -264,6 +264,7 @@
 			pendingClass       : "pending",
 			validClass         : "valid",
 			errorElement       : "label",
+			wrapperClass       : '',
 			focusCleanup       : false,
 			focusInvalid       : true,
 			errorContainer     : $([]),
@@ -931,10 +932,9 @@
 					// Maintain reference to the element to be placed into the DOM
 					place = error;
 					if (this.settings.wrapper) {
-
 						// Make sure the element is visible, even in IE
 						// actually showing the wrapped element is handled elsewhere
-						place = error.hide().show().wrap("<" + this.settings.wrapper + "/>").parent();
+						place = error.hide().show().wrap("<" + this.settings.wrapper + " class=\""+this.settings.wrapperClass+"\"/>").parent();
 					}
 					if (this.labelContainer.length) {
 						this.labelContainer.append(place);
@@ -1496,12 +1496,31 @@
 
 				data               = {};
 				data[element.name] = value;
+				if(param.rqs){
+					let cform = $(this.currentForm);
+					for(i in param.rqs){
+						let fn = param.rqs[i];
+						if(!fn){
+							break;
+						}
+						let fe = cform.find('[name='+fn+']').eq(0);
+						if(fe.is('checkbox')){
+							data[fn] = fe.checked();
+						}else if(fe.is('radio')){
+							fe = cform.find('[name='+fn+']:checked');
+							data[fn] = fe.val();
+						}else{
+							data[fn] = fe.val();
+						}
+					}
+					delete param.rqs;
+				}
 				let e              = $.Event('validate.remote');
 
 				e.param = param;
 				$(element).trigger(e);
 
-				if (e.isDefaultPrevented) {
+				if (e.isDefaultPrevented()) {
 					return previous.valid;
 				}
 
@@ -1566,7 +1585,6 @@
 			regex         = /\b\w+\b/g;
 		return this.optional(element) || valueStripped.match(regex).length >= params[0] && valueStripped.match(regex).length <= params[1];
 	}, $.validator.format("Please enter between {0} and {1} words."));
-	console.log('add Method pattern');
 	$.validator.addMethod("pattern", function (value, element, param) {
 		if (this.optional(element)) {
 			return true;
@@ -1604,6 +1622,7 @@
 				pendingRequests[port] = xhr;
 			}
 		});
+		$.valdatorAjax = $.ajax;
 	} else {
 		// Proxy ajax
 		ajax           = $.ajax;
