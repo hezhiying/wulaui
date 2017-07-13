@@ -85,6 +85,13 @@
 					showNotice(xhr);
 					$(document).trigger('wula.page.404');
 					break;
+				case 422:
+					try {
+						ajaxAction($.parseJSON(xhr.responseText));
+					} catch (e) {
+
+					}
+					break;
 				default:
 					showNotice(xhr);
 			}
