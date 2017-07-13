@@ -14,7 +14,7 @@ import webserver from "gulp-webserver";
 
 let knownOptions = {
 	string : 'env',
-	default: {env: process.env.NODE_ENV || 'production'}
+	default: {env: process.env.NODE_ENV || 'dev'}
 };
 
 let options = minimist(process.argv.slice(2), knownOptions);
@@ -40,7 +40,7 @@ gulp.task('ccss', ['deps', 'css'], function () {
 		'css/app.css'
 	]).pipe(concat('ui.css'))
 		.pipe(gulp.dest('css'));
-	if (options.env === 'production')
+	if (options.env === 'pro')
 		return ccss.pipe(cssmin())
 			.pipe(rename({extname: '.min.css'}))
 			.pipe(gulp.dest('css'));
@@ -85,7 +85,7 @@ gulp.task('gv', [], function () {
 		.pipe(concat('validate.js'))
 		.pipe(gulp.dest('js'));
 
-	if (options.env === 'production')
+	if (options.env === 'pro')
 		js.pipe(uglify());
 
 	return js
@@ -111,7 +111,7 @@ gulp.task('js', [], function () {
 		.pipe(concat('app.js'))
 		.pipe(gulp.dest('js'));
 
-	if (options.env === 'production')
+	if (options.env === 'pro')
 		return js.pipe(uglify())
 			.pipe(rename({
 				extname: '.min.js'
@@ -120,10 +120,9 @@ gulp.task('js', [], function () {
 });
 
 gulp.task('watch', ['build'], function () {
-	options.env = 'development';
+	options.env = 'dev';
 	gulp.src('.').pipe(webserver({
 		open: 'demo/',
-
 		fallback: '404.html'
 	}));
 	gulp.watch(['less/**'], ['ccss']);

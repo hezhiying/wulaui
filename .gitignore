@@ -61,4 +61,9 @@ css/app.css
 css/plugins.css
 js/validate.js
 package-lock.json
+js/validate/validate.min.js
+js/app.min.js
+js/app.js
+css/ui.min.css
+css/ui.css
 .idea/
