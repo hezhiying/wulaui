@@ -1627,6 +1627,28 @@
 	$.validator.addMethod("ipv6", function (value, element) {
 		return this.optional(element) || /^((([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}((\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b)\.){3}(\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b))|(([0-9A-Fa-f]{1,4}:){0,5}:((\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b)\.){3}(\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b))|(::([0-9A-Fa-f]{1,4}:){0,5}((\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b)\.){3}(\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b))|([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,7}:))$/i.test(value);
 	}, "Please enter a valid IP v6 address.");
+	$.validator.addMethod( "require_from_group", function( value, element, options ) {
+		var $fields = $( options[ 1 ], element.form ),
+			$fieldsFirst = $fields.eq( 0 ),
+			validator = $fieldsFirst.data( "valid_req_grp" ) ? $fieldsFirst.data( "valid_req_grp" ) : $.extend( {}, this ),
+			isValid = $fields.filter( function() {
+					return validator.elementValue( this );
+				} ).length >= options[ 0 ];
+
+		// Store the cloned validator for future validation
+		$fieldsFirst.data( "valid_req_grp", validator );
+
+		// If element isn't being validated, run each require_from_group field's validation rules
+		if ( !$( element ).data( "being_validated" ) ) {
+			$fields.data( "being_validated", true );
+			$fields.each( function() {
+				validator.element( this );
+			} );
+			$fields.data( "being_validated", false );
+		}
+		return isValid;
+	}, $.validator.format( "Please fill at least {0} of these fields." ) );
+
 	// Ajax mode: abort
 	// usage: $.ajax({ mode: "abort"[, port: "uniqueport"]});
 	// if mode:"abort" is used, the previous request on that port (port can be undefined) is aborted via XMLHttpRequest.abort()

@@ -11,6 +11,9 @@
 			}
 		}
 		if (window.requirejs) {
+			if (this.settings.mode !== 'pro') {
+				this.settings.requirejs.urlArgs = "_=" + (new Date()).getTime()
+			}
 			requirejs.config(this.settings.requirejs);
 		}
 		$('body .wulaui').trigger('wulaui.widgets.init');
@@ -32,8 +35,9 @@
 
 	window.wulapp = $.wulaUI.app = function (url, hash) {
 		if (typeof(url) === "string") {
-			let config = this.settings.appConfig;
+			let config = $.wulaUI.settings.appConfig;
 			let chunks = url.split('/');
+
 			if (chunks[0].match(/^([~!@#%\^&\*])(.+)$/)) {
 				let id     = RegExp.$2,
 					prefix = RegExp.$1;

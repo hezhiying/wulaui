@@ -59,7 +59,7 @@
 					};
 					let target = $(me.data('loading'));
 					$.wulaUI.destroyElement(target);
-					target.html('<p class="text-center m-xs"><i class="fa fa-spinner fa-spin fa-3x"></i></p>');
+					target.html('<p class="text-center m-md"><i class="fa fa-spinner fa-spin fa-3x"></i></p>');
 				} else {
 					jc = $.dialog({
 						title    : '',

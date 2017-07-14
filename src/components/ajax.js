@@ -3,6 +3,45 @@
 	"use strict";
 	const wulajax = $.wulajax = $.ajax;
 	// 重写ajax
+	$.confirmDo = function (options, confirm) {
+		let opts = {
+			content: '',
+			title  : $.lang.core.confirmTile,
+			icon   : 'fa fa-question-circle',
+			type   : 'orange',
+			theme  : 'material',
+			buttons: {
+				ok    : {
+					text    : $.lang.core.yes1,
+					btnClass: 'btn-blue',
+					keys    : ['enter', 'a'],
+					action(){
+						if (opts.loading) {
+							jc.setTitle('');
+							jc.buttons.ok.hide();
+							jc.buttons.cancel.hide();
+							jc.setIcon('');
+							jc.setContent('<p class="text-center"><i class="fa fa-spinner fa-spin fa-4x" aria-hidden="true"></i></p>');
+							$.ajax(options).always(() => {
+								if (opts.block) {
+									return;
+								}
+								jc.close();
+							});
+							return false;
+						} else
+							$.ajax(options);
+					}
+				},
+				cancel: {
+					text: $.lang.core.cancel
+				}
+			}
+		};
+		opts     = $.extend(true, opts, confirm || {});
+		let jc   = $.confirm(opts);
+	};
+
 	$.ajax = function (url, options) {
 		return wulajax(url, options).done(data => {
 			let opts = options || url;
@@ -53,7 +92,13 @@
 				case 500:
 					deal500({
 						message: (t => {
-							if (t.indexOf('</body>')) {
+							if (xhr.getResponseHeader('ajax')) {
+								try {
+									let data = $.parseJSON(t);
+									return data.message;
+								} catch (e) {
+								}
+							} else if (t.indexOf('</body>')) {
 								t = t.substr(0, t.indexOf('</body>'));
 								t = t.substr(t.indexOf('>', t.indexOf('<body')) + 1);
 							}
@@ -65,7 +110,13 @@
 					//数据类型转换错误
 					deal500({
 						message: (t => {
-							if (t.indexOf('</body>')) {
+							if (xhr.getResponseHeader('ajax')) {
+								try {
+									let data = $.parseJSON(t);
+									return data.message;
+								} catch (e) {
+								}
+							} else if (t.indexOf('</body>')) {
 								t = t.substr(0, t.indexOf('</body>'));
 								t = t.substr(t.indexOf('>', t.indexOf('<body')) + 1);
 							}
@@ -176,7 +227,7 @@
 										jc.buttons.ok.hide();
 										jc.buttons.cancel.hide();
 										jc.setIcon('');
-										jc.setContent('<i class="fa fa-spinner fa-spin fa-4x" aria-hidden="true"></i>');
+										jc.setContent('<p class="text-center"><i class="fa fa-spinner fa-spin fa-4x" aria-hidden="true"></i></p>');
 
 										$.ajax(be.opts).always(() => {
 											if ($this.data('block') !== undefined) {
@@ -266,7 +317,7 @@
 				opts.z_index   = 9000;
 				opts.placement = {
 					from : "top",
-					align: "right"
+					align: "center"
 				};
 				$.notify({
 					icon   : opts.icon,

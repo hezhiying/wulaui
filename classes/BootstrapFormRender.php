@@ -30,7 +30,7 @@ class BootstrapFormRender extends FormRender {
 	}
 
 	protected function renderInline($fields) {
-
+		return $this->vertical($fields);
 	}
 
 	/**
@@ -70,7 +70,7 @@ class BootstrapFormRender extends FormRender {
 							}
 
 							if (isset($field['note']) && $field['note']) {
-								$chunk[] = "<span class=\"help-block m-b-none\">" . html_escape($field['note']) . "</span>";
+								$chunk[] = "<span class=\"help-block m-b-none\">" . $field['note'] . "</span>";
 							}
 							$chunk[] = '</div>';
 						}
@@ -102,7 +102,7 @@ class BootstrapFormRender extends FormRender {
 						}
 
 						if (isset($field['note']) && $field['note']) {
-							$chunk[] = "<span class=\"help-block m-b-none\">" . html_escape($field['note']) . "</span>";
+							$chunk[] = "<span class=\"help-block m-b-none\">" . $field['note'] . "</span>";
 						}
 
 						if ($col) {
@@ -159,7 +159,7 @@ class BootstrapFormRender extends FormRender {
 							}
 
 							if (isset($field['note']) && $field['note']) {
-								$chunk[] = "<span class=\"help-block m-b-none\">" . html_escape($field['note']) . "</span>";
+								$chunk[] = "<span class=\"help-block m-b-none\">" . $field['note'] . "</span>";
 							}
 
 							$chunk[] = '</div>';//3
@@ -192,7 +192,7 @@ class BootstrapFormRender extends FormRender {
 							$chunk[] = $field->render($this->options);
 						}
 						if (isset($field['note']) && $field['note']) {
-							$chunk[] = "<span class=\"help-block m-b-none\">" . html_escape($field['note']) . "</span>";
+							$chunk[] = "<span class=\"help-block m-b-none\">" . $field['note'] . "</span>";
 						}
 
 						if ($col) {

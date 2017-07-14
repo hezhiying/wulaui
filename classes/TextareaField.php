@@ -26,8 +26,8 @@ class TextareaField extends FormField {
 		$readonly             = isset ($definition ['readonly']) ? ' readonly="readonly" ' : '';
 		$disabled             = isset ($definition ['disabled']) ? ' disabled="disabled" ' : '';
 		$placeholder          = isset ($definition ['placeholder']) ? ' placeholder="' . $definition ['placeholder'] . '" ' : '';
-		$class                = isset ($definition ['class']) ? $definition['class']:'';
-		$html []              = '<textarea id="' . $id . '" rows="' . $row . '"'. $readonly . $disabled . $placeholder . ' name="' . $this->name . '" class="form-control ' . $class . '">' . $definition ['value'] . '</textarea>';
+		$class                = isset ($definition ['class']) ? $definition['class'] : '';
+		$html []              = '<textarea id="' . $id . '" rows="' . $row . '"' . $readonly . $disabled . $placeholder . ' name="' . $this->name . '" class="form-control ' . $class . '">' . html_escape($this->value) . '</textarea>';
 
 		return implode('', $html);
 	}
