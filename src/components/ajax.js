@@ -3,18 +3,19 @@
 	"use strict";
 	const wulajax = $.wulajax = $.ajax;
 	// 重写ajax
-	$.confirmDo = function (options, confirm) {
+	$.confirmDo  = function (options, confirm) {
 		let opts = {
-			content: '',
-			title  : $.lang.core.confirmTile,
-			icon   : 'fa fa-question-circle',
-			type   : 'orange',
-			theme  : 'material',
-			buttons: {
+			escapeKey: 'cancel',
+			content  : '',
+			title    : $.lang.core.confirmTile,
+			icon     : 'fa fa-question-circle',
+			type     : 'orange',
+			theme    : 'material',
+			buttons  : {
 				ok    : {
 					text    : $.lang.core.yes1,
 					btnClass: 'btn-blue',
-					keys    : ['enter', 'a'],
+					keys    : ['enter'],
 					action(){
 						if (opts.loading) {
 							jc.setTitle('');
@@ -41,8 +42,38 @@
 		opts     = $.extend(true, opts, confirm || {});
 		let jc   = $.confirm(opts);
 	};
+	$.ajaxDialog = function (url, title, buttons, type, columnClass) {
+		let djc, opts = {
+			title         : title || false,
+			content       : 'url:' + url,
+			type          : type || 'default',
+			closeIcon     : true,
+			closeIconClass: 'fa fa-close',
+			contentLoaded : function (data, status, xhr) {
+				if (status === 'error') {
+					djc.close();
+				}
+			},
+			onContentReady: function () {
+				$.wulaUI.initElement($(this.$content));
+			},
+			onDestroy     : function () {
+				$.wulaUI.destroyElement($(this.$content));
+			},
+			columnClass   : 'medium'
+		};
 
-	$.ajax = function (url, options) {
+		if (columnClass) {
+			opts.columnClass = columnClass;
+		}
+		if (buttons) {
+			opts.buttons = buttons;
+			djc          = $.confirm(opts);
+		} else {
+			djc = $.dialog(opts);
+		}
+	};
+	$.ajax       = function (url, options) {
 		return wulajax(url, options).done(data => {
 			let opts = options || url;
 			if (opts.mode === 'abort') {
@@ -56,7 +87,6 @@
 			}
 		});
 	};
-
 	//修改默认的ajax行为
 	$(document).ajaxSend((event, xhr, opts) => {
 		if (opts.mode === 'abort') {
@@ -174,7 +204,6 @@
 		cache  : false,
 		timeout: 900000
 	});
-
 	// ajax 请求
 	const doAjaxRequest = function (e) {
 		e.preventDefault();
@@ -204,22 +233,40 @@
 				be.opts.dataType = 'html';
 				be.opts.action   = 'update';
 				be.opts.target   = $this.attr('target') || $this.data('target');
+			} else if (be.opts.method === 'DIALOG') {
+				be.opts.method           = 'GET';
+				be.opts.dataType         = 'html';
+				be.opts.action           = 'dialog';
+				be.opts.dialogTitle      = $this.data('dialogTitle') || false;
+				be.opts.dialogType       = $this.data('dialogType') || 'default';
+				be.opts.dialogWidthClass = $this.data('dialogWidthCls') || false;
+				let dialogE              = $.Event('build.dialog');
+				dialogE.buttons          = null;
+				$this.trigger(dialogE);
+				if (dialogE.buttons) {
+					be.opts.buttons = dialogE.buttons;
+				}
 			}
-
 			$this.trigger(be);
 			if (!be.isDefaultPrevented()) {
-				if ($this.data('confirm') !== undefined) {
+				if (be.opts.action === 'dialog') {
+					//是dialog，所以走$.ajaxDialog方法
+					let ops = be.opts;
+					$.ajaxDialog(ops.url, ops.dialogTitle, ops.buttons, ops.dialogType, ops.dialogWidthClass);
+				} else if ($this.data('confirm') !== undefined) {
 					let jc = $.confirm({
-						content: $this.data('confirm') || '',
-						title  : $this.data('confirmTitle') || $.lang.core.confirmTile,
-						icon   : $this.data('confirmIcon') || 'fa fa-question-circle',
-						type   : $this.data('confirmType') || 'orange',
-						theme  : $this.data('confirmTheme') || 'material',
-						buttons: {
+						content  : $this.data('confirm') || '',
+						title    : $this.data('confirmTitle') || $.lang.core.confirmTile,
+						icon     : $this.data('confirmIcon') || 'fa fa-question-circle',
+						type     : $this.data('confirmType') || 'orange',
+						theme    : $this.data('confirmTheme') || 'material',
+						autoClose: $this.data('confirmAutoclose') || false,
+						escapeKey: 'cancel',
+						buttons  : {
 							ok    : {
 								text    : $.lang.core.yes1,
 								btnClass: 'btn-blue',
-								keys    : ['enter', 'a'],
+								keys    : ['enter'],
 								action(){
 									if ($this.data('loading') !== undefined) {
 										$this.data('loading', null);
@@ -350,6 +397,10 @@
 				break;
 			case 'reload':
 				//重新加载
+				if (data.target === 'document') {
+					location.reload();
+					return;
+				}
 				target = $(data.target);
 				if (target.length) {
 					let loader = target.data('loaderObj');
@@ -358,7 +409,6 @@
 							loader.reload(null, true);
 						}
 					} catch (e) {
-
 					}
 				}
 				break;
@@ -378,7 +428,11 @@
 				let url = data.target;
 				if (url) {
 					if (url[0] === '#') {
-						window.location.hash = url;
+						if (window.location.hash === url) {
+							$.wulaUI.load();
+						} else {
+							window.location.hash = url;
+						}
 					} else {
 						if (window.location.hash && data.hash) {
 							window.location.href = url + window.location.hash;

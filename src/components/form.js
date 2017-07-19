@@ -1,12 +1,12 @@
 ($ => {
-	const prepareValidateRule = function (rules) {
+	const prepareValidateRule    = function (rules) {
 		if ('object' !== typeof rules) {
 			rules = $.parseJSON(rules);
 		}
 		if (rules.rules) {
 			for (let i in rules.rules) {
 				for (let j in rules.rules[i]) {
-					if (j == 'pattern') {
+					if (j === 'pattern') {
 						eval('var rule = ' + rules.rules[i][j] + ';');
 						rules.rules[i][j] = rule;
 					}
@@ -15,7 +15,7 @@
 		}
 		return rules;
 	};
-	const errorPlacement      = function (error, element) {
+	const errorPlacement         = function (error, element) {
 		if (element.is('[type=checkbox]') || element.is('[type=radio]')) {
 			let wrap = element.closest('div');
 			if (wrap.is('.checkbox') || wrap.is('.radio')) {
@@ -34,7 +34,7 @@
 			}
 		}
 	};
-	const Validator           = function (form) {
+	const Validator              = function (form) {
 		this.form                 = form;
 		this.rules                = prepareValidateRule(form.data('validate'));
 		const name                = form.attr('name');
@@ -60,7 +60,7 @@
 		//注册销毁事件
 		form.closest('.wulaui').on('wulaui.widgets.destroy', this.destroy);
 	};
-
+	//验证
 	Validator.prototype.validate = function (errors) {
 		if (!this.validator) {
 			return false;
@@ -77,8 +77,8 @@
 		}
 		return this.form.valid();
 	};
-
-	Validator.prototype.destroy = function () {
+	//销毁
+	Validator.prototype.destroy  = function () {
 		if (this.validator) {
 			this.validator.destroy();
 			this.validator = null;
