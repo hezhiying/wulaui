@@ -15,10 +15,10 @@
 		let me      = this;
 		if (this.target) {
 			element.children('[data-id]').hover(function () {
-				let $this = $(this), toolbar = $this.data('popmenu'), id = $this.data('id');
+				let $this = $(this), toolbar = $this.data('popToolbar'), id = $this.data('id');
 				if (!toolbar) {
 					toolbar = $(me.target).clone(true);
-					$this.data('popmenu', toolbar);
+					$this.data('popToolbar', toolbar);
 					toolbar.css({
 						'position': 'absolute',
 						'right'   : 5,
@@ -34,7 +34,7 @@
 				toolbar.show();
 				return false;
 			}, function () {
-				let $this = $(this), popMenu = $this.data('popmenu');
+				let $this = $(this), popMenu = $this.data('popToolbar');
 				if (popMenu) {
 					popMenu.hide();
 				}
