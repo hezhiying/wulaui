@@ -14,7 +14,8 @@
 			cancel                  : '算了',
 			confirmTile             : '你确定吗?',
 			changNotSaved           : '你有未保存的内容，离开将丢失这些内容!',
-			ajaxDataConvertException: '类型类型转换出错'
+			ajaxDataConvertException: '类型类型转换出错',
+			emptyWarn               : '请选择要操作的数据'
 		}
 	});
 

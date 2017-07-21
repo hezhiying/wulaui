@@ -1,6 +1,6 @@
 ($ => {
 	const pagerTpl            = '<section class="col-sm-12  col-md-7 col-lg-8 text-right"><ul class="pagination pagination-sm m-t-sm m-b-none"></ul></section>';
-	const tipTpl              = '<section class="col-sm-12  col-md-5 col-lg-4 hidden-sm"><div class="m-t text-muted">每页&nbsp;<select></select>条&nbsp;共<span class="tp"></span>页<span class="tr"></span>条记录</div></section>';
+	const tipTpl              = '<section class="col-sm-12  col-md-5 col-lg-4 visible-md-block visible-lg-block"><div class="m-t text-muted">每页&nbsp;<select></select>条&nbsp;共<span class="tp"></span>页<span class="tr"></span>条记录</div></section>';
 	const nuiPager            = function (pager) {
 		let targetId = pager.data('tablePager');
 		if (targetId) {
@@ -60,7 +60,6 @@
 		pagerElm.append('<li class="disabled p-n"><a href="#" rel="1"><i class="fa fa-forward"></i></a></li>');
 		pagerElm.append('<li class="disabled p-l"><a href="#" rel="1"><i class="fa fa-fast-forward"></i></a></li>');
 		pageWrapper.appendTo(pager);
-		pager.append($('<div class="clearfix"></div>'));
 		pagerElm.on('click', 'a', function (event) {
 			event.preventDefault();
 			if (!$(this).parents('li').hasClass('disabled')) {

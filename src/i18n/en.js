@@ -13,7 +13,8 @@
 			cancel                  : 'Cancel',
 			confirmTile             : 'Are you sure?',
 			changNotSaved           : 'Changes you made may not be saved.',
-			ajaxDataConvertException: 'Cannot convert response data to expected type.'
+			ajaxDataConvertException: 'Cannot convert response data to expected type.',
+			emptyWarn               : 'please select some records!'
 		}
 	}
 })(jQuery);

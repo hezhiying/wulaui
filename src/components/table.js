@@ -20,8 +20,8 @@
 		this.id              = table.attr('id');
 		this.currentTreeNode = null;
 		if (this.isTree) {
-			this.folderOpenIcon  = table.data('folderIcon1') || 'fa fa-minus-circle fa-lg';
-			this.folderCloseIcon = table.data('folderIcon2') || 'fa fa-plus-circle fa-lg';
+			this.folderOpenIcon  = table.data('folderIcon1') || 'fa fa-minus-circle';
+			this.folderCloseIcon = table.data('folderIcon2') || 'fa fa-plus-circle';
 			this.leafIcon        = table.data('leafIcon') || '';
 		}
 		if (this.noHover) {
@@ -278,7 +278,7 @@
 		}
 		if (search || !this.inited) {
 			data.push({
-				name : '_ct',
+				name : 'count',
 				value: 1
 			});
 			pageit = true;
@@ -292,28 +292,28 @@
 		}
 
 		data.push({
-			name : '_cp',
+			name : 'pager[page]',
 			value: this.data.cp
 		});
 
 		data.push({
-			name : '_lt',
+			name : 'pager[size]',
 			value: this.data.limit
 		});
 
 		if (this.data.sf) {
 			data.push({
-				name : '_sf',
+				name : 'sort[name]',
 				value: this.data.sf
 			});
 			if (this.data.dir) {
 				data.push({
-					name : '_od',
+					name : 'sort[dir]',
 					value: this.data.dir
 				});
 			} else {
 				data.push({
-					name : '_od',
+					name : 'sort[dir]',
 					value: 'd'
 				});
 			}
@@ -321,7 +321,7 @@
 
 		if (me.currentTreeNode !== null) {
 			data.push({
-				name : '_tid',
+				name : 'parentId',
 				value: me.currentTreeNode.attr('rel')
 			});
 			me.currentTreeNode.find('.tt-folder').addClass('fa-spin');
@@ -350,7 +350,9 @@
 					me.initTree();
 				}
 			} else {
-				me.table.find('tbody').remove();
+				let tb = me.table.find('tbody');
+				$.wulaUI.destroyElement(tb);
+				tb.remove();
 				me.table.find('thead').after(html);
 			}
 

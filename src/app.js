@@ -175,7 +175,7 @@
 				type    : "GET",
 				dataType: 'html',
 				cache   : true,
-				beforeSend (){
+				beforeSend() {
 					$("html").animate({
 						scrollTop: 0
 					}, "fast");
@@ -197,8 +197,8 @@
 		$target = $this.data('target') || $this.attr('href');
 		$class && ($tmp = $class.split(':')[1]) && ($classes = $tmp.split(','));
 		$target && ($targets = $target.split(','));
-		$targets && $targets.length && $.each($targets, function (index) {
-			($targets[index] !== '#') && $($targets[index]).toggleClass($classes[index]);
+		$targets && $targets.length && $.each($targets, function (index, e) {
+			(e !== '#') && $(e).toggleClass($classes[index]);
 		});
 		$this.toggleClass('active');
 	});

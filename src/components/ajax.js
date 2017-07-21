@@ -16,7 +16,7 @@
 					text    : $.lang.core.yes1,
 					btnClass: 'btn-blue',
 					keys    : ['enter'],
-					action(){
+					action() {
 						if (opts.loading) {
 							jc.setTitle('');
 							jc.buttons.ok.hide();
@@ -219,7 +219,7 @@
 		if (!event.isDefaultPrevented()) {
 			// 生成发起ajax请求的选项.
 			let be      = $.Event('ajax.build');
-			be.opts     = $.extend({element: $this}, $this.data() || {});
+			be.opts     = $.extend({element: $this, data: []}, $this.data() || {});
 			be.opts.url = be.opts.url || $this.attr('href') || $this.attr('action') || '';
 			let ajax    = be.opts.ajax || 'get.json';
 			delete be.opts.ajax;
@@ -247,10 +247,28 @@
 					be.opts.buttons = dialogE.buttons;
 				}
 			}
+
+			let selected = $this.data('grp');
+			if (selected) {
+				let ids = [], name = $this.data('arg') || 'ids';
+				$(selected).each(function (i, n) {
+					ids.push($(n).val());
+				});
+				if (ids.length === 0) {
+					let warn = $this.data('warn') || $.lang.core.emptyWarn;
+					$.notifyW(warn);
+					return;
+				}
+				ids = ids.join(',');
+				be.opts.data.push({
+					name : name,
+					value: ids
+				});
+			}
 			$this.trigger(be);
 			if (!be.isDefaultPrevented()) {
 				if (be.opts.action === 'update' && $(be.opts.target).data('loaderObj')) {
-					$(be.opts.target).data('load', be.opts.url).data('loaderObj').reload();
+					$(be.opts.target).data('load', be.opts.url).data('loaderObj').reload($this.data('force') !== undefined);
 				} else if (be.opts.action === 'dialog') {
 					//是dialog，所以走$.ajaxDialog方法
 					let ops = be.opts;
@@ -269,7 +287,7 @@
 								text    : $.lang.core.yes1,
 								btnClass: 'btn-blue',
 								keys    : ['enter'],
-								action(){
+								action() {
 									if ($this.data('loading') !== undefined) {
 										$this.data('loading', null);
 										jc.setTitle('');

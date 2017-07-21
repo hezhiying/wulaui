@@ -25,7 +25,7 @@
 		}
 	};
 	// reload
-	doLoad.prototype.reload = function () {
+	doLoad.prototype.reload = function (force) {
 		let dirty = this.element.data('dirty'), checkDirty = this.element.data('checkDirty');
 		if (dirty && checkDirty !== undefined) {
 			let $this = this.element;
@@ -40,8 +40,8 @@
 						text    : $.lang.core.yes1,
 						btnClass: 'btn-blue',
 						keys    : ['enter', 'a'],
-						action(){
-							_doLoad.apply(this);
+						action() {
+							_doLoad.apply(this, [true]);
 						}
 					},
 					cancel: {
@@ -50,13 +50,13 @@
 				}
 			});
 		} else {
-			_doLoad.apply(this);
+			_doLoad.apply(this, [force]);
 		}
 	};
-	const _doLoad           = function () {
+	const _doLoad           = function (force) {
 		let ourl = this.url ? this.url : '';
 		this.url = this.element.data('load');
-		if (!this.url || (this.lazy && ourl === this.url)) {
+		if (!this.url || (!force && this.lazy && ourl === this.url)) {
 			return;
 		}
 		let be           = $.Event('ajax.build');
