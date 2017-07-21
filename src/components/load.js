@@ -25,7 +25,7 @@
 		}
 	};
 	// reload
-	doLoad.prototype.reload = function (force) {
+	doLoad.prototype.reload = function (cb, force) {
 		let dirty = this.element.data('dirty'), checkDirty = this.element.data('checkDirty');
 		if (dirty && checkDirty !== undefined) {
 			let $this = this.element;

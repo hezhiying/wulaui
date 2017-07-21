@@ -268,7 +268,7 @@
 			$this.trigger(be);
 			if (!be.isDefaultPrevented()) {
 				if (be.opts.action === 'update' && $(be.opts.target).data('loaderObj')) {
-					$(be.opts.target).data('load', be.opts.url).data('loaderObj').reload($this.data('force') !== undefined);
+					$(be.opts.target).data('load', be.opts.url).data('loaderObj').reload(null, $this.data('force') !== undefined);
 				} else if (be.opts.action === 'dialog') {
 					//是dialog，所以走$.ajaxDialog方法
 					let ops = be.opts;
