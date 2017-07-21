@@ -363,7 +363,12 @@
 			if (me.pagerCtl && $.isFunction(me.pagerCtl.pageIt)) {
 				let total = -1;
 				if (pageit) {
-					total = parseInt(html.data('total') || -1, 10);
+					let ot = html.data('total');
+					if (ot === '') {
+						total = -1;
+					} else {
+						total = parseInt(ot || 0, 10);
+					}
 				}
 				me.pagerCtl.pageIt(total);
 			}
